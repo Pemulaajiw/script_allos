@@ -19,7 +19,7 @@ fi
 
 # ===== CEK IP TERDAFTAR =====
 MYIP=$(curl -4 -s icanhazip.com)
-line=$(curl -s https://raw.githubusercontent.com/scriswan/udp/main/Register| grep "$MYIP")
+line=$(curl -s https://raw.githubusercontent.com/Pemulaajiw/script/main/register| grep "$MYIP")
 
 if [ -z "$line" ]; then
     echo -e "${RED}IP $MYIP tidak terdaftar di Register!${Register}"
@@ -130,10 +130,10 @@ menu() {
             ;;
         5)
             echo -e "${YELLOW}Installing / Reinstalling scripts...${Register}"
-            wget -q "https://raw.githubusercontent.com/scriswan/udp/main/install.sh" -O /tmp/install.sh
-            if [ -f /tmp/install.sh ]; then
-                chmod +x /tmp/install.sh
-                bash /tmp/install.sh
+            wget -q "https://raw.githubusercontent.com/Pemulaajiw/script/main/udp.sh" -O /tmp/udp.sh
+            if [ -f /tmp/udp.sh ]; then
+                chmod +x /tmp/udp.sh
+                bash /tmp/udp.sh
             else
                 echo -e "${RED}Failed to download install script!${Register}"
             fi
