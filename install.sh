@@ -242,7 +242,31 @@ print_install "Menginstall Packet Yang Dibutuhkan"
     echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
     sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent net-tools openssl ca-certificates gnupg gnupg2 ca-certificates lsb-release gcc shc make cmake git screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq openvpn easy-rsa
     print_success "Packet Yang Dibutuhkan"
-    
+	
+packages=(
+libnss3-dev liblzo2-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev
+libcap-ng-utils libselinux1-dev flex bison make libnss3-tools libevent-dev bc
+rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential
+gcc g++ htop lsof tar wget curl ruby zip unzip p7zip-full libc6 util-linux
+ca-certificates iptables iptables-persistent netfilter-persistent
+net-tools openssl gnupg gnupg2 lsb-release shc cmake git whois
+screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq
+tmux python3 python3-pip lsb-release gawk
+libncursesw5-dev libgdbm-dev tk-dev libffi-dev libbz2-dev checkinstall
+openvpn easy-rsa dropbear
+)
+for package in "${packages[@]}"; do
+if ! dpkg -s "$package" >/dev/null 2>&1; then
+if ! apt-get update -y; then
+echo -e "${red}Failed to update${neutral}"
+fi
+if ! apt-get install -y "$package"; then
+echo -e "${red}Failed to install $package${neutral}"
+fi
+else
+echo -e "${green}$package is already installed, skipping...${neutral}"
+fi
+done    
 }
 # Buat direktori xray
 print_install "Membuat direktori xray"
@@ -578,8 +602,8 @@ bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release
     curl -s ipinfo.io/city >>/etc/xray/city
     curl -s ipinfo.io/org | cut -d " " -f 2-10 >>/etc/xray/isp
     print_install "Memasang Konfigurasi Packet"
-    wget -O /etc/haproxy/haproxy.cfg "https://raw.githubusercontent.com/Pemulaajiw/script/main/config/haproxy.cfg" >/dev/null 2>&1
-    wget -O /etc/nginx/conf.d/xray.conf "https://raw.githubusercontent.com/Pemulaajiw/script/main/config/xray.conf" >/dev/null 2>&1
+    wget -O /etc/haproxy/haproxy.cfg "https://raw.githubusercontent.com/joytun21/schaya/main/other/haproxy.cfg" >/dev/null 2>&1
+    wget -O /etc/nginx/conf.d/xray.conf "https://raw.githubusercontent.com/joytun21/scjoy/main/ssh/xray.conf" >/dev/null 2>&1
     sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
     sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
     curl ${REPO}config/nginx.conf > /etc/nginx/nginx.conf
@@ -741,11 +765,21 @@ function ins_dropbear(){
 clear
 print_install "Menginstall Dropbear"
 # // Installing Dropbear
-apt-get install dropbear -y > /dev/null 2>&1
-wget -q -O /etc/default/dropbear "${REPO}config/dropbear.conf"
-chmod +x /etc/default/dropbear
-/etc/init.d/dropbear restart
-/etc/init.d/dropbear status
+if [ -n "$dropbear_conf_url" ]; then
+[ -f /etc/default/dropbear ] && rm /etc/default/dropbear
+wget -q -O /etc/default/dropbear $dropbear_conf_url >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear.conf${neutral}"
+[ -f /etc/init.d/dropbear ] && rm /etc/init.d/dropbear
+wget -q -O /etc/init.d/dropbear $dropbear_init_url && chmod +x /etc/init.d/dropbear >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear.init${neutral}"
+[ -f /etc/dropbear/dropbear_dss_host_key ] && rm /etc/dropbear/dropbear_dss_host_key
+wget -q -O /etc/dropbear/dropbear_dss_host_key $dropbear_dss_url && chmod +x /etc/dropbear/dropbear_dss_host_key >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear_dss_host_key${neutral}"
+else
+echo -e "${yellow}dropbear_conf_url is not set, skipping download of dropbear_dss_host_key${neutral}"
+fi
+if [ -n "$banner_url" ]; then
+wget -q -O /etc/gerhanatunnel.txt $banner_url && chmod +x /etc/gerhanatunnel.txt >/dev/null 2>&1 || echo -e "${red}Failed to download gerhanatunnel.txt${neutral}"
+else
+echo -e "${yellow}banner_url is not set, skipping download of gerhanatunnel.txt${neutral}"
+fi
 print_success "Dropbear"
 }
 
@@ -861,12 +895,6 @@ else
 fi
 
 clear
-# banner
-echo "Banner /etc/kyt.txt" >>/etc/ssh/sshd_config
-sed -i 's@DROPBEAR_BANNER=""@DROPBEAR_BANNER="/etc/kyt.txt"@g' /etc/default/dropbear
-
-# Ganti Banner
-wget -O /etc/kyt.txt "${REPO}files/issue.net"
 print_success "Fail2ban"
 }
 
