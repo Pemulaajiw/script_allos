@@ -215,7 +215,7 @@ echo -e "${green}System dist-upgraded successfully${neutral}"
 fi
 function base_package() {
 print_install "Menginstall Packet Yang Dibutuhkan"
-clear
+    clear
     ########
     print_install "Menginstall Packet Yang Dibutuhkan"
     apt install zip pwgen openssl netcat socat cron bash-completion -y
@@ -988,14 +988,6 @@ systemctl enable noobzvpns &>/dev/null
 print_success "NOOBZVPN"
 }
 
-function ins_trgo(){
-cd
-print_install "Memasang TrojanGo"
-wget "https://raw.githubusercontent.com/king-vpn/autoscript-vip/main/install/ins-trgo.sh && chmod +x ins-trgo.sh && ./ins-trgo.sh" >/dev/null 2>&1
-clear
-print_success "TROJANGO"
-}
-
 function ins_restart(){
 clear
 cd
@@ -1114,7 +1106,7 @@ cd
 
     clear
     print_install "Memasang Menu Packet"
-    wget ${REPO}menu/menu.zip
+    wget https://raw.githubusercontent.com/Pemulaajiw/script_allos/main/menu/menu.zip
     7z x -pFanVpnID0311 menu.zip
     chmod +x menu/*
     mv menu/* /usr/local/sbin
