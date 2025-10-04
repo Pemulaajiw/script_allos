@@ -917,19 +917,21 @@ cd
 rm -rf /root/udp
 mkdir -p /root/udp
 
-# install udp-custom
-echo downloading udp-custom
-wget -q --show-progress --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1_VyhL5BILtoZZTW4rhnUiYzc4zHOsXQ8' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1_VyhL5BILtoZZTW4rhnUiYzc4zHOsXQ8" -O /root/udp/udp-custom && rm -rf /tmp/cookies.txt
+# ===== INSTALL UDP-CUSTOM =====
+echo "Downloading udp-custom..."
+wget -q "https://github.com/scriswan/udp/raw/main/udp-custom-linux-amd64" -O /root/udp/udp-custom
 chmod +x /root/udp/udp-custom
 
-echo downloading default config
-wget -q --show-progress --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1_XNXsufQXzcTUVVKQoBeX5Ig0J7GngGM' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1_XNXsufQXzcTUVVKQoBeX5Ig0J7GngGM" -O /root/udp/config.json && rm -rf /tmp/cookies.txt
+# ===== DOWNLOAD DEFAULT CONFIG =====
+echo "Downloading default config..."
+wget -q "https://raw.githubusercontent.com/scriswan/udp/main/config.json" -O /root/udp/config.json
 chmod 644 /root/udp/config.json
 
+# ===== BUAT SYSTEMD SERVICE =====
 if [ -z "$1" ]; then
 cat <<EOF > /etc/systemd/system/udp-custom.service
 [Unit]
-Description=UDP Custom by ePro Dev. Team
+Description=UDP Custom by ePro Dev. Team (modified by fanstvt)
 
 [Service]
 User=root
@@ -945,7 +947,7 @@ EOF
 else
 cat <<EOF > /etc/systemd/system/udp-custom.service
 [Unit]
-Description=UDP Custom by ePro Dev. Team
+Description=UDP Custom by ePro Dev. Team (modified by fanstvt)
 
 [Service]
 User=root
