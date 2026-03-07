@@ -53,6 +53,8 @@ curl -s -O https://raw.githubusercontent.com/Pemulaajiw/script_allos/main/instal
 chmod +x install.sh && \
 screen -S install ./install.sh
 ```
+## Cara merubah username vps biznet ke root dan tanpa harus login menggunakan key
+
 ## 💖 Dukung Pengembangan
 
 Bantu saya terus kembangkan proyek ini agar tetap **gratis**, **stabil**, dan **berkembang lebih lanjut** 🚀  
