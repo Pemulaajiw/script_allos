@@ -222,8 +222,11 @@ print_install "Membuat direktori xray"
 # Change Environment System
 function first_setup(){
     timedatectl set-timezone Asia/Jakarta
-    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
-    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+# Dukung iptables-persistent dan netfilter-persistent
+    if [[ "$os_id" == "ubuntu" ]] || [[ "$os_id" == "debian" ]]; then
+        if apt-cache show iptables-persistent &>/dev/null; then
+            echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+            echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
     print_success "Directory Xray"
     ln -fs /usr/share/zoneinfo/$timezone /etc/localtime
     os_id=$(grep -w ID /etc/os-release | head -n1 | sed 's/ID=//g' | sed 's/"//g')
