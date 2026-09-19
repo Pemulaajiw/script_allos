@@ -168,31 +168,75 @@ function is_root() {
 function base_package() {
     clear
     ########
-    print_install "Menginstall Packet Yang Dibutuhkan"
-    apt install zip pwgen openssl netcat socat cron bash-completion -y
-    apt install figlet -y
+    print_install "Installing Required Packages"
+
+    # System update
     apt update -y
     apt upgrade -y
     apt dist-upgrade -y
-    systemctl enable chronyd
-    systemctl restart chronyd
-    systemctl enable chrony
-    systemctl restart chrony
-    chronyc sourcestats -v
-    chronyc tracking -v
-    apt install ntpdate -y
-    ntpdate pool.ntp.org
-    apt install sudo -y
-    sudo apt-get clean all
-    sudo apt-get autoremove -y
-    sudo apt-get install -y debconf-utils
-    sudo apt-get remove --purge exim4 -y
-    sudo apt-get remove --purge ufw firewalld -y
-    sudo apt-get install -y --no-install-recommends software-properties-common
-    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
-    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-    sudo apt-get install -y speedtest-cli vnstat libnss3-dev liblzo2-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ htop lsof tar wget curl ruby zip unzip p7zip-full libc6 util-linux ca-certificates iptables iptables-persistent netfilter-persistent net-tools openssl gnupg gnupg2 lsb-release shc cmake git whois screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq tmux python3 python3-pip lsb-release gawk libncursesw5-dev libgdbm-dev tk-dev libffi-dev libbz2-dev checkinstall openvpn easy-rsa dropbear
-    print_success "Packet Yang Dibutuhkan"
+
+    # Install Ruby and lolcat
+    if ! dpkg -s ruby >/dev/null 2>&1; then
+        apt install ruby -y
+    fi
+    if command -v ruby &>/dev/null; then
+        if ! gem list -i lolcat >/dev/null 2>&1; then
+            gem install lolcat
+        fi
+    fi
+
+    # Define all required packages
+    packages=(
+        libnss3-dev liblzo2-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev
+        libcap-ng-utils libselinux1-dev flex bison make libnss3-tools libevent-dev bc
+        rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr
+        libxml-parser-perl build-essential gcc g++ htop lsof tar wget curl ruby
+        zip unzip p7zip-full libc6 util-linux ca-certificates iptables
+        iptables-persistent netfilter-persistent net-tools openssl gnupg gnupg2
+        lsb-release cmake git whois screen socat xz-utils apt-transport-https
+        dnsutils cron bash-completion chrony jq tmux python3
+        python3-pip gawk libncursesw5-dev libgdbm-dev tk-dev libffi-dev
+        libbz2-dev checkinstall openvpn easy-rsa dropbear figlet pwgen sudo
+        debconf-utils software-properties-common vnstat rclone
+        msmtp-mta bsd-mailx
+    )
+
+    # Specific package handling for Ubuntu 24.04 / Debian 13
+    if [[ "$os_version" == "24.04" ]] || [[ "$os_id" == "debian" && "$os_version" == "13" ]]; then
+        packages=(${packages[@]/shc/})
+        packages=(${packages[@]/ntpdate/})
+    fi
+
+
+    # Check which packages are missing and install in batch
+    missing_packages=()
+    for package in "${packages[@]}"; do
+        if ! dpkg -s "$package" >/dev/null 2>&1; then
+            missing_packages+=("$package")
+        fi
+    done
+
+    if [ ${#missing_packages[@]} -gt 0 ]; then
+        echo -e "${green}Installing ${#missing_packages[@]} missing packages...${NC}"
+        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+        echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+        apt-get install -y ${missing_packages[*]} || {
+            echo -e "${red}Some packages failed. Trying individually...${NC}"
+            for pkg in "${missing_packages[@]}"; do
+                apt-get install -y "$pkg" 2>/dev/null || echo -e "${YELLOW}Warning: $pkg failed to install${NC}"
+            done
+        }
+    else
+        echo -e "${green}All packages already installed.${NC}"
+    fi
+
+    # Remove unnecessary packages
+    apt-get remove --purge exim4 -y 2>/dev/null
+    apt-get remove --purge ufw firewalld -y 2>/dev/null
+    apt-get autoremove -y
+    apt-get clean
+
+    print_success "Required Packages"
     
 }
 clear
