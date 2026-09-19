@@ -1378,6 +1378,6 @@ clear
 echo ""
 echo ""
 echo ""
-read -p "Press [ Enter ] TO WELCOME"
+read -r -p "Press [ Enter ] TO WELCOME"
 clear
 welcome
