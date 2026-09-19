@@ -1008,22 +1008,30 @@ print_success "ePro WebSocket Proxy"
 
 
 function noobzvpn(){
-clear
-cd
-print_install "Memasang Noobzvpn"
-wget "${REPO}noobzvpns.zip"
-unzip noobzvpns.zip
-chmod +x noobzvpns/*
-cd noobzvpns
-bash install.sh
-cd
-rm -rf noobzvpns.zip
-echo start service noobzvpns
-systemctl start noobzvpns &>/dev/null
+    clear
+    cd
+    print_install "Memasang Noobzvpn"
+    
+    # Hapus direktori sisa instalasi sebelumnya (jika ada) agar git clone tidak error
+    rm -rf noobzvpns
+    
+    # Clone langsung dari GitHub resmi noobz-id
+    git clone https://github.com/noobz-id/noobzvpns.git
+    cd noobzvpns/
+    chmod +x install.sh
+    ./install.sh
+    
+    cd
+    # Membersihkan folder instalasi setelah selesai agar server tetap rapi
+    rm -rf noobzvpns
+    
+    echo "start service noobzvpns"
+    systemctl start noobzvpns &>/dev/null
 
-echo enable service noobzvpns
-systemctl enable noobzvpns &>/dev/null
-print_success "NOOBZVPN"
+    echo "enable service noobzvpns"
+    systemctl enable noobzvpns &>/dev/null
+    
+    print_success "NOOBZVPN"
 }
 
 function ins_restart(){
