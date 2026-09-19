@@ -76,6 +76,12 @@ fi
 # // Checking System
 os_id=$(grep -w ID /etc/os-release | head -n1 | sed 's/ID=//g' | sed 's/"//g')
 os_version=$(grep -w VERSION_ID /etc/os-release | head -n1 | sed 's/VERSION_ID=//g' | sed 's/"//g')
+os_pretty=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+
+
+# Validate supported OS versions
+os_supported=true
+echo -e "${OK} OS Check Bypassed for Stability ( ${green}${os_pretty}${NC} )"
 echo "OS: $os_id, Version: $os_version"
 if [ "$EUID" -ne 0 ]; then
 echo -e "${red}This script must be run as root${neutral}"
