@@ -8,16 +8,7 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # FanVPN-Store
 
-
-# === OTOMATISASI FIX HOSTNAME UBUNTU 20.04===
-CURRENT_HOSTNAME=$(hostname)
-if ! grep -q "$CURRENT_HOSTNAME" /etc/hosts; then
-    echo -e "${GREEN}[*] Auto-Fixing Hostname Identity...${NC}"
-    echo "127.0.0.1 $CURRENT_HOSTNAME" >> /etc/hosts
-fi
-
-
-
+# === DEFINISI WARNA (Pindahkan ke sini agar bisa dibaca dari awal) ===
 Green="\e[92;1m"
 RED="\033[31m"
 YELLOW="\033[33m"
@@ -31,6 +22,14 @@ GRAY="\e[1;30m"
 NC='\e[0m'
 red='\e[1;31m'
 green='\e[0;32m'
+
+# === OTOMATISASI FIX HOSTNAME UBUNTU 20.04===
+CURRENT_HOSTNAME=$(hostname)
+if ! grep -q "$CURRENT_HOSTNAME" /etc/hosts; then
+    # Ubah $GREEN menjadi $Green sesuai definisi di atas
+    echo -e "${Green}[*] Auto-Fixing Hostname Identity...${NC}"
+    echo "127.0.0.1 $CURRENT_HOSTNAME" >> /etc/hosts
+fi
 # Informasi sistem
 timezone="Asia/Jakarta"
 city=$(curl -s ipinfo.io/city)
