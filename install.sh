@@ -1292,7 +1292,7 @@ function dnsxx(){
 # ==========================================
 sudo systemctl disable systemd-resolved > /dev/null 2>&1
 sudo systemctl stop systemd-resolved > /dev/null 2>&1
-sudo rm -rf /etc/resolv.config > /dev/null 2>&1
+sudo rm -rf /etc/resolv.conf > /dev/null 2>&1
 echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" | sudo tee /etc/resolv.conf
 sudo chattr +i /etc/resolv.conf > /dev/null 2>&1
 sudo systemctl start systemd-resolved > /dev/null 2>&1
