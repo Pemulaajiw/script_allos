@@ -1161,6 +1161,25 @@ cd
 }
 
 # Membaut Default Menu 
+
+function install_wendy_api() {
+    print_install "MENJALANKAN install_wendy_api"
+    mkdir -p /etc/wendy-api
+    if [ ! -f /etc/wendy-api/token ]; then
+        openssl rand -hex 24 >/etc/wendy-api/token || print_error "Gagal membuat token API."
+    fi
+    chmod 600 /etc/wendy-api/token
+    print_ok "Mengunduh wendy-api.py dan service..."
+    wget -O /usr/local/bin/wendy-api.py "${REPO}files/wendy-api.py" || print_error "Gagal mengunduh wendy-api.py."
+    wget -O /etc/systemd/system/wendy-api.service "${REPO}files/wendy-api.service" || print_error "Gagal mengunduh wendy-api.service."
+    chmod +x /usr/local/bin/wendy-api.py
+    chmod 644 /etc/systemd/system/wendy-api.service
+    systemctl daemon-reload || print_error "Gagal memuat ulang daemon systemd."
+    systemctl enable --now wendy-api || print_error "Gagal mengaktifkan wendy-api."
+    print_success "Wendy API"
+    print_ok "install_wendy_api SELESAI"
+}
+
 function profile(){
 clear
     cat >/root/.profile <<EOF
@@ -1289,6 +1308,7 @@ clear
     macrotunnel
     ins_restart
     menu
+	install_wendy_api
     profile
     enable_services
     restart_system
