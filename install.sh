@@ -640,7 +640,7 @@ wget -qO /usr/bin/udp-mt https://macrotunnel.serv00.net/udp-mt && chmod +x /usr/
 
 }
 
-function ssh(){
+function install_ssh(){
 clear
 print_install "Memasang Password SSH"
 wget -O /etc/pam.d/common-password "${REPO}files/password"
@@ -1266,7 +1266,7 @@ clear
     password_default
     pasang_ssl
     install_xray
-    ssh
+    install_ssh
     udp_mini
     ssh_slow
     ins_udpSSH
