@@ -818,6 +818,72 @@ wget ${REPO}files/openvpn &&  chmod +x openvpn && ./openvpn
 print_success "OpenVPN"
 }
 
+function password_default() {
+    print_ok "Fungsi password_default dipanggil (kosong)."
+    :
+}
+
+function ins_udpSSH(){
+    print_install "Menginstall UDP-CUSTOM"
+    cd
+    rm -rf /root/udp
+    mkdir -p /root/udp
+
+    # ===== INSTALL UDP-CUSTOM =====
+    echo "Downloading udp-custom..."
+    wget -q "https://github.com/scriswan/udp/raw/main/udp-custom-linux-amd64" -O /root/udp/udp-custom
+    chmod +x /root/udp/udp-custom
+
+    # ===== DOWNLOAD DEFAULT CONFIG =====
+    echo "Downloading default config..."
+    wget -q "https://raw.githubusercontent.com/scriswan/udp/main/config.json" -O /root/udp/config.json
+    chmod 644 /root/udp/config.json
+
+    # ===== BUAT SYSTEMD SERVICE =====
+    if [ -z "$1" ]; then
+cat <<EOF > /etc/systemd/system/udp-custom.service
+[Unit]
+Description=UDP Custom by ePro Dev. Team (modified by allxd)
+
+[Service]
+User=root
+Type=simple
+ExecStart=/root/udp/udp-custom server
+WorkingDirectory=/root/udp/
+Restart=always
+RestartSec=2s
+
+[Install]
+WantedBy=default.target
+EOF
+    else
+cat <<EOF > /etc/systemd/system/udp-custom.service
+[Unit]
+Description=UDP Custom by ePro Dev. Team (modified by allxd)
+
+[Service]
+User=root
+Type=simple
+ExecStart=/root/udp/udp-custom server -exclude $1
+WorkingDirectory=/root/udp/
+Restart=always
+RestartSec=2s
+
+[Install]
+WantedBy=default.target
+EOF
+    fi
+
+    echo "start service udp-custom"
+    systemctl start udp-custom &>/dev/null
+
+    echo "enable service udp-custom"
+    systemctl enable udp-custom &>/dev/null
+    
+    clear
+    print_success "UDP-CUSTOM BY ALLXDDEV STORE VPN"
+}
+
 function ins_backup(){
 clear
 print_install "Memasang Backup Server"
