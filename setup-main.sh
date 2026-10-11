@@ -126,6 +126,15 @@ clear
     REPO="https://raw.githubusercontent.com/Pemulaajiw/script/main/"
 
 ####
+# --- Compat layer: dukung semua versi Debian & Ubuntu ---
+# Diambil dari repo bila belum ada lokal (setup-main.sh diunduh standalone).
+if [ -f "$(dirname "$0")/universal_compat.sh" ]; then
+    . "$(dirname "$0")/universal_compat.sh"
+elif [ -f ./universal_compat.sh ]; then
+    . ./universal_compat.sh
+else
+    wget -q -O /tmp/universal_compat.sh "${REPO}universal_compat.sh" 2>/dev/null && . /tmp/universal_compat.sh || true
+fi
 start=$(date +%s)
 secs_to_human() {
     echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
