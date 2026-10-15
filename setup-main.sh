@@ -791,6 +791,8 @@ clear
 function ins_dropbear(){
 clear
 print_install "Menginstall Dropbear"
+apt update -y
+apt install dropbear -y || print_error "Gagal menginstal Dropbear."
 # // Installing Dropbear
 if [ -n "$dropbear_conf_url" ]; then
 [ -f /etc/default/dropbear ] && rm /etc/default/dropbear
