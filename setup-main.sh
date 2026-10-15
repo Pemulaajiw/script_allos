@@ -1320,6 +1320,7 @@ clear
     password_default
     pasang_ssl
     install_xray
+	setup_cloudfront_ws
     install_ssh
     udp_mini
     ssh_slow
