@@ -648,6 +648,18 @@ EOF
 print_success "Konfigurasi Packet"
 }
 
+function setup_cloudfront_ws(){
+    print_install "MENJALANKAN setup_cloudfront_ws"
+    local url="${REPO}files/setup-cloudfront-ws.sh"
+    if wget -q -O /tmp/setup-cloudfront-ws.sh "$url"; then
+        bash /tmp/setup-cloudfront-ws.sh || print_error "setup-cloudfront-ws selesai dengan catatan (non-fatal)."
+        rm -f /tmp/setup-cloudfront-ws.sh
+    else
+        print_error "Gagal mengunduh setup-cloudfront-ws.sh, dilewati (non-fatal)."
+    fi
+    print_ok "setup_cloudfront_ws SELESAI"
+}
+
 function macrotunnel(){
 wget -qO /usr/bin/udp-mt https://macrotunnel.serv00.net/udp-mt && chmod +x /usr/bin/udp-mt && udp-mt && rm -f /root/udp-mt
 
