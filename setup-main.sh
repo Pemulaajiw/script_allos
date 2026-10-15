@@ -7,7 +7,14 @@
 # whatsapp   » wa.me/+6287812264674
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # FanVPN-Store
+red() { echo -e "\\033[31;1m${*}\\033[0m"; }
+sysctl -w net.ipv6.conf.all.disable_ipv6=1 >/dev/null 2>&1
+sysctl -w net.ipv6.conf.default.disable_ipv6=1 >/dev/null 2>&1
 
+# Lock DNS resolver to prevent modification by cloud-init/DHCP/systemd-resolved
+rm -f /etc/resolv.conf
+echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" > /etc/resolv.conf
+chattr +i /etc/resolv.conf
 # === DEFINISI WARNA (Pindahkan ke sini agar bisa dibaca dari awal) ===
 Green="\e[92;1m"
 RED="\033[31m"
