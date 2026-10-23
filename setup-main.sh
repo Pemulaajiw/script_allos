@@ -118,23 +118,20 @@ if [[ "$ARCH" == "aarch64" ]] || [[ "$ARCH" == "arm64" ]]; then
     BINARCH="arm64/"
 fi
 
-# // Checking System
-os_id=$(grep -w ID /etc/os-release | head -n1 | sed 's/ID=//g' | sed 's/"//g')
-os_version=$(grep -w VERSION_ID /etc/os-release | head -n1 | sed 's/VERSION_ID=//g' | sed 's/"//g')
-os_pretty=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
-# Gerbang versi: hanya Ubuntu >= 20.04 dan Debian >= 10 yang didukung.
-# Di bawah itu komponen kunci (OpenVPN 2.4, HAProxy 1.8, Python lama)
-# berbeda terlalu jauh sehingga layanan TIDAK dijamin berfungsi,
-# jadi installer berhenti di sini dengan pesan yang jelas.
+# Checking System
+source /etc/os-release
+os_id=$ID
+os_version=$VERSION_ID
+os_pretty=$PRETTY_NAME
+
 os_version_ge() {
-    # os_version_ge <versi-minimum> <versi-os> -> sukses bila versi-os >= minimum
     [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1)" = "$1" ]
 }
 
-# Validate supported OS versions
 os_supported=true
 echo -e "${OK} OS Check Bypassed for Stability ( ${green}${os_pretty}${NC} )"
 echo "OS: $os_id, Version: $os_version"
+
 if [ "$EUID" -ne 0 ]; then
 echo -e "${red}This script must be run as root${neutral}"
 exit 1
