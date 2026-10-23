@@ -152,6 +152,41 @@ elif [ -f ./universal_compat.sh ]; then
 else
     wget -q -O /tmp/universal_compat.sh "${REPO}universal_compat.sh" 2>/dev/null && . /tmp/universal_compat.sh || true
 fi
+# Fallback bila compat layer gagal dimuat (mis. unduhan gagal): sediakan
+# implementasi minimal agar titik install utama tetap bisa memakai
+# compat_apt_install / compat_apt_try / compat_service.
+if ! command -v compat_apt_install >/dev/null 2>&1; then
+    compat_apt_install() {
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$@" \
+            || DEBIAN_FRONTEND=noninteractive apt-get install -y "$@"
+    }
+fi
+if ! command -v compat_apt_try >/dev/null 2>&1; then
+    compat_apt_try() {
+        local p
+        for p in "$@"; do
+            if apt-cache show "$p" >/dev/null 2>&1 && compat_apt_install "$p" >/dev/null 2>&1; then
+                return 0
+            fi
+        done
+        return 1
+    }
+fi
+if ! command -v compat_service >/dev/null 2>&1; then
+    compat_service() {
+        local action="$1" name="$2"
+        if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
+            systemctl "$action" "$name" 2>/dev/null && return 0
+        fi
+        if command -v service >/dev/null 2>&1; then
+            service "$name" "$action" 2>/dev/null && return 0
+        fi
+        if [ -x "/etc/init.d/$name" ]; then
+            "/etc/init.d/$name" "$action" 2>/dev/null && return 0
+        fi
+        return 1
+    }
+fi
 start=$(date +%s)
 secs_to_human() {
     echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
