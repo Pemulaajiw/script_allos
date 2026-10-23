@@ -245,21 +245,19 @@ function base_package() {
     clear
     ########
     print_install "MENJALANKAN base_package"
-    export DEBIAN_FRONTEND=noninteractive # FIX: Blokir layar interaktif
-    
+    export DEBIAN_FRONTEND=noninteractive
+
     print_ok "Menginstal paket dasar..."
-    apt install -y zip pwgen openssl socat cron bash-completion figlet 2>/dev/null || apt install -y zip pwgen openssl socat cron bash-completion 2>/dev/null || print_error "Gagal menginstal paket dasar"
-    apt install -y netcat-openbsd 2>/dev/null || apt install -y netcat-traditional 2>/dev/null || apt install -y netcat 2>/dev/null || print_ok "netcat dilewati"
-    
-    print_ok "Memperbarui dan memutakhirkan sistem..."
-    # FIX: Tahan grub agar tidak memunculkan error config saat upgrade
-    apt-mark hold grub-pc grub-efi-amd64-signed 2>/dev/null
+    apt-get install -y zip unzip pwgen openssl socat cron bash-completion figlet 2>/dev/null || apt-get install -y zip unzip pwgen openssl socat cron bash-completion 2>/dev/null || print_error "Gagal menginstal paket dasar"
+    apt-get install -y netcat-openbsd 2>/dev/null || apt-get install -y netcat-traditional 2>/dev/null || apt-get install -y netcat 2>/dev/null || print_ok "netcat dilewati"
+
+    print_ok "Memperbarui sistem..."
+    apt-mark hold grub-pc grub-efi-amd64-signed 2>/dev/null || true
     apt-get update -y
     apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
-    apt-get dist-upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
-    
+
     print_ok "Menginstal dan mengkonfigurasi chrony..."
-    sudo apt install -y chrony
+    apt-get install -y chrony
     if systemctl list-units --type=service 2>/dev/null | grep -q chronyd.service; then
         systemctl enable chronyd
         systemctl restart chronyd
@@ -267,51 +265,40 @@ function base_package() {
         systemctl enable chrony
         systemctl restart chrony
     fi
-    chronyc sourcestats -v
-    chronyc tracking -v
-    
-    # FIX: Menggunakan chronyc untuk sinkronisasi waktu instan menggantikan ntpdate yang usang
+    chronyc sourcestats -v >/dev/null 2>&1 || true
+    chronyc tracking -v >/dev/null 2>&1 || true
+
     print_ok "Sinkronisasi waktu dari NTP..."
     chronyc makestep || print_error "Gagal sinkronisasi waktu."
-    
+
     print_ok "Menginstal utilitas sistem..."
-    apt install sudo -y || print_error "Gagal menginstal sudo."
-    sudo apt clean all
-    sudo apt autoremove -y
-    sudo apt install -y debconf-utils || print_error "Gagal menginstal debconf-utils."
-    
-    print_ok "Menghapus paket yang tidak diinginkan..."
-    sudo apt remove --purge exim4 -y 2>/dev/null
-	# sudo apt remove --purge ufw firewalld -y 2>/dev/null
-    
+    apt-get install sudo -y || print_error "Gagal menginstal sudo."
+    apt-get clean all
+    apt-get autoremove -y
+    apt-get install -y debconf-utils || print_error "Gagal menginstal debconf-utils."
+
+    print_ok "Menghapus paket MTA bawaan yang konflik..."
+    apt-get remove --purge exim4 -y 2>/dev/null || true
+    # Firewall tidak dihapus demi keamanan
+
     print_ok "Menginstal software-properties-common..."
-    sudo apt install -y --no-install-recommends software-properties-common || print_error "Gagal menginstal software-properties-common."
-    
+    apt-get install -y --no-install-recommends software-properties-common 2>/dev/null || print_ok "software-properties-common dilewati (Debian 12+)."
+
     if apt-cache show iptables-persistent &>/dev/null; then
         echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
         echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
     fi
-    
+
     print_ok "Menginstal paket utama..."
-    sudo apt install -y vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-openssl-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python3 htop lsof tar wget curl ruby zip unzip python3-pip libc6 util-linux ca-certificates cmake git screen socat xz-utils dnsutils cron bash-completion jq || print_error "Gagal menginstal paket utama."
-    
-    # netfilter-persistent - nama berbeda antar versi Ubuntu/Debian
-    sudo apt install -y netfilter-persistent 2>/dev/null || sudo apt install -y iptables-persistent 2>/dev/null || print_ok "netfilter/iptables-persistent dilewati"
-    
-    # easy-rsa - tersedia di semua versi, fallback jika tidak ada
-    sudo apt install -y easy-rsa 2>/dev/null || print_ok "easy-rsa dilewati"
-    
-    # FIX pip3 untuk Debian 12 (menggunakan flag --break-system-packages jika diminta)
-    sudo apt install -y speedtest-cli 2>/dev/null || pip3 install speedtest-cli --break-system-packages 2>/dev/null || pip3 install speedtest-cli 2>/dev/null || print_ok "speedtest-cli dilewati"
-    
-    sudo apt install -y msmtp-mta 2>/dev/null || print_ok "msmtp-mta dilewati"
-    
-    # 7zip: coba 7zip dulu (Ubuntu 24+ / Debian 12+), fallback ke p7zip-full
-    sudo apt install -y 7zip 2>/dev/null || sudo apt install -y p7zip-full 2>/dev/null || print_ok "7zip/p7zip dilewati"
-    
-    # shc: opsional
-    sudo apt install -y shc 2>/dev/null || print_ok "shc dilewati"
-    
+    apt-get install -y vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-openssl-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python3 htop lsof tar wget curl ruby zip unzip python3-pip libc6 util-linux ca-certificates cmake git screen socat xz-utils dnsutils cron bash-completion jq || print_error "Gagal menginstal beberapa paket utama."
+
+    apt-get install -y netfilter-persistent 2>/dev/null || apt-get install -y iptables-persistent 2>/dev/null || print_ok "netfilter/iptables-persistent dilewati"
+    apt-get install -y easy-rsa 2>/dev/null || print_ok "easy-rsa dilewati"
+    apt-get install -y speedtest-cli 2>/dev/null || pip3 install speedtest-cli --break-system-packages 2>/dev/null || pip3 install speedtest-cli 2>/dev/null || print_ok "speedtest-cli dilewati"
+    apt-get install -y msmtp-mta 2>/dev/null || print_ok "msmtp-mta dilewati"
+    apt-get install -y p7zip-full 2>/dev/null || apt-get install -y 7zip 2>/dev/null || print_ok "7zip/p7zip dilewati"
+    apt-get install -y shc 2>/dev/null || print_ok "shc dilewati"
+
     print_success "Packet Yang Dibutuhkan"
     print_ok "base_package SELESAI"
 }
