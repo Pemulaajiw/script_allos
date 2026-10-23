@@ -363,54 +363,26 @@ function first_setup(){
     # INSTALASI NGINX
     # ==========================================
     if [[ $os_id == "ubuntu" ]]; then
-        if ! dpkg -s ubuntu-keyring >/dev/null 2>&1; then
-            apt install -y ubuntu-keyring || echo -e "${red}Failed to install ubuntu-keyring${neutral}"
-        else
-            echo -e "${green}ubuntu-keyring is already installed, skipping...${neutral}"
-        fi
-        rm -f /etc/apt/sources.list.d/nginx.list || echo -e "${red}Failed to delete nginx.list${neutral}"
-        
-        # Menggunakan os_codename pengganti lsb_release
-        curl -fsSL $nginx_key_url | gpg --dearmor | tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
+        apt-get install -y ubuntu-keyring >/dev/null 2>&1 || true
+        rm -f /etc/apt/sources.list.d/nginx.list
+        curl -fsSL $nginx_key_url | gpg --dearmor --yes -o /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
         echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/ubuntu $os_codename nginx" | tee /etc/apt/sources.list.d/nginx.list
         echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" | tee /etc/apt/preferences.d/99nginx
-        
-        apt update -y
-        if ! dpkg -s nginx >/dev/null 2>&1; then
-            if ! apt install -y nginx; then
-                echo -e "${red}Failed to install nginx${neutral}"
-            fi
-        else
-            echo -e "${green}nginx is already installed, skipping...${neutral}"
-        fi
-        if [ -f /etc/nginx/conf.d/default.conf ]; then
-            rm /etc/nginx/conf.d/default.conf || echo -e "${red}Failed to delete /etc/nginx/conf.d/default.conf${neutral}"
-        else
-            echo -e "${yellow}/etc/nginx/conf.d/default.conf does not exist, skipping deletion${neutral}"
-        fi
+
+        apt-get update -y
+        apt-get install -y nginx || echo -e "${red}Failed to install nginx${neutral}"
+        rm -f /etc/nginx/conf.d/default.conf
 
     elif [[ $os_id == "debian" ]]; then
-        rm -f /etc/apt/sources.list.d/nginx.list || echo -e "${red}Failed to delete nginx.list${neutral}"
-        if ! dpkg -s debian-archive-keyring >/dev/null 2>&1; then
-            apt install -y debian-archive-keyring || echo -e "${red}Failed to install debian-archive-keyring${neutral}"
-        else
-            echo -e "${green}debian-archive-keyring is already installed, skipping...${neutral}"
-        fi
-        
-        # Menggunakan os_codename pengganti lsb_release (Fix untuk Debian 12+)
-        curl -fsSL $nginx_key_url | gpg --dearmor | tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
+        apt-get install -y debian-archive-keyring >/dev/null 2>&1 || true
+        rm -f /etc/apt/sources.list.d/nginx.list
+        curl -fsSL $nginx_key_url | gpg --dearmor --yes -o /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
         echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/debian $os_codename nginx" | tee /etc/apt/sources.list.d/nginx.list
         echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" | tee /etc/apt/preferences.d/99nginx
-        
-        apt update -y
-        if ! dpkg -s nginx >/dev/null 2>&1; then
-            apt install -y nginx || echo -e "${red}Failed to install nginx${neutral}"
-        else
-            echo -e "${green}nginx is already installed, skipping...${neutral}"
-        fi
-        if [ -f /etc/nginx/conf.d/default.conf ]; then
-            rm /etc/nginx/conf.d/default.conf || echo -e "${red}Failed to delete /etc/nginx/conf.d/default.conf${neutral}"
-        fi
+
+        apt-get update -y
+        apt-get install -y nginx || echo -e "${red}Failed to install nginx${neutral}"
+        rm -f /etc/nginx/conf.d/default.conf
     else
         echo -e "${red}Unsupported OS. Exiting.${neutral}"
         exit 1
