@@ -278,7 +278,7 @@ function base_package() {
     
     print_ok "Menghapus paket yang tidak diinginkan..."
     sudo apt remove --purge exim4 -y 2>/dev/null
-    sudo apt remove --purge ufw firewalld -y 2>/dev/null
+	# sudo apt remove --purge ufw firewalld -y 2>/dev/null
     
     print_ok "Menginstal software-properties-common..."
     sudo apt install -y --no-install-recommends software-properties-common || print_error "Gagal menginstal software-properties-common."
