@@ -335,27 +335,29 @@ print_install "Membuat direktori xray"
 # Change Environment System
 function first_setup(){
     timedatectl set-timezone Asia/Jakarta
-    
-    # Ambil variabel OS yang akurat tanpa perlu lsb_release
     source /etc/os-release
     os_id=$ID
     os_version=$VERSION_ID
     os_codename=$VERSION_CODENAME
 
-    # Dukung iptables-persistent dan netfilter-persistent
     if [[ "$os_id" == "ubuntu" ]] || [[ "$os_id" == "debian" ]]; then
         if apt-cache show iptables-persistent &>/dev/null; then
             echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
             echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-        fi # <-- Menambahkan 'fi' yang hilang di script asli
+        fi
     fi
 
     print_success "Directory Xray"
     ln -fs /usr/share/zoneinfo/$timezone /etc/localtime
 
-    # Pastikan curl dan gnupg terinstall untuk import GPG key
-    sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
-    sudo apt-get install -y --no-install-recommends curl gnupg software-properties-common
+    apt-get update -y || echo -e "${red}Failed to update package list${neutral}"
+    apt-get install -y --no-install-recommends curl gnupg ca-certificates lsb-release 2>/dev/null || true
+    apt-get install -y --no-install-recommends software-properties-common 2>/dev/null || true
+
+    # Fallback jika VERSION_CODENAME kosong di OS lama
+    if [ -z "$os_codename" ]; then
+        os_codename=$(lsb_release -cs 2>/dev/null || echo "focal")
+    fi
 
     # ==========================================
     # INSTALASI NGINX
