@@ -427,41 +427,41 @@ function first_setup(){
     # ==========================================
     # INSTALASI HAPROXY
     # ==========================================
-    if [[ $os_id == "ubuntu" && $os_version == "18.04" ]]; then
+    if [[ "$os_id" == "ubuntu" && os_version_ge == "18.04" "$os_version" ]]; then
         add-apt-repository -y ppa:vbernat/haproxy-2.6 || echo -e "${red}Failed to add haproxy repository${neutral}"
         sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
         apt-get install -y haproxy=2.6.\* || echo -e "${red}Failed to install haproxy${neutral}"
-    elif [[ $os_id == "ubuntu" && $os_version == "20.04" ]]; then
+    elif [[ "$os_id" == "ubuntu" && os_version_ge == "20.04" "$os_version" ]]; then
         add-apt-repository -y ppa:vbernat/haproxy-2.9 || echo -e "${red}Failed to add haproxy repository${neutral}"
         sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
         apt-get install -y haproxy=2.9.\* || echo -e "${red}Failed to install haproxy${neutral}"
-    elif [[ $os_id == "ubuntu" && $os_version == "22.04" ]]; then
+    elif [[ "$os_id" == "ubuntu" && os_version_ge == "22.04" "$os_version" ]]; then
         add-apt-repository -y ppa:vbernat/haproxy-3.0 || echo -e "${red}Failed to add haproxy repository${neutral}"
         sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
         apt-get install -y haproxy=3.0.\* || echo -e "${red}Failed to install haproxy${neutral}"
-    elif [[ $os_id == "ubuntu" && $os_version == "24.04" ]]; then
+    elif [[ "$os_id" == "ubuntu" && os_version_ge == "24.04" "$os_version" ]]; then
         add-apt-repository -y ppa:vbernat/haproxy-3.0 || echo -e "${red}Failed to add haproxy repository${neutral}"
         sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
         apt-get install -y haproxy=3.0.\* || echo -e "${red}Failed to install haproxy${neutral}"
-    elif [[ $os_id == "ubuntu" && $os_version == "25.04" ]]; then
+    elif [[ "$os_id" == "ubuntu" && os_version_ge == "25.04" "$os_version" ]]; then
         sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
         apt-get install -y haproxy || echo -e "${red}Failed to install haproxy${neutral}"
-    elif [[ $os_id == "debian" && $os_version == "10" ]]; then
+    elif [[ "$os_id" == "debian" && os_version_ge == "10" "$os_version" ]]; then
         curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg || echo -e "${red}Failed to add haproxy repository${neutral}"
         echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net buster-backports-2.6 main >/etc/apt/sources.list.d/haproxy.list || echo -e "${red}Failed to add haproxy repository${neutral}"
         sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
         apt-get install -y haproxy=2.6.\* || echo -e "${red}Failed to install haproxy${neutral}"
-    elif [[ $os_id == "debian" && $os_version == "11" ]]; then
+    elif [[ "$os_id" == "debian" && os_version_ge == "11" "$os_version" ]]; then
         curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg || echo -e "${red}Failed to add haproxy repository${neutral}"
         echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net bullseye-backports-3.0 main >/etc/apt/sources.list.d/haproxy.list || echo -e "${red}Failed to add haproxy repository${neutral}"
         sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
         apt-get install -y haproxy=3.0.\* || echo -e "${red}Failed to install haproxy${neutral}"
-    elif [[ $os_id == "debian" && $os_version == "12" ]]; then
+    elif [[ "$os_id" == "debian" && os_version_ge == "12" "$os_version" ]]; then
         curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg || echo -e "${red}Failed to add haproxy repository${neutral}"
         echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net bookworm-backports-3.0 main >/etc/apt/sources.list.d/haproxy.list || echo -e "${red}Failed to add haproxy repository${neutral}"
         sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
         apt-get install -y haproxy=3.0.\* || echo -e "${red}Failed to install haproxy${neutral}"
-    elif [[ $os_id == "debian" && $os_version == "13" ]]; then
+    elif [[ "$os_id" == "debian" && os_version_ge == "13" "$os_version" ]]; then
         echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net trixie-backports-3.0 main" >/etc/apt/sources.list.d/haproxy.list || echo -e "${red}Gagal menambahkan repository HAProxy${neutral}"
         sudo apt update -y || echo -e "${red}Gagal update daftar paket${neutral}"
         apt-get install -y haproxy || echo -e "${red}Gagal menginstal HAProxy${neutral}" # Fix Typo (sebelumnya apt-get apt install)
