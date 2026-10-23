@@ -93,7 +93,14 @@ fi
 os_id=$(grep -w ID /etc/os-release | head -n1 | sed 's/ID=//g' | sed 's/"//g')
 os_version=$(grep -w VERSION_ID /etc/os-release | head -n1 | sed 's/VERSION_ID=//g' | sed 's/"//g')
 os_pretty=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
-
+# Gerbang versi: hanya Ubuntu >= 20.04 dan Debian >= 10 yang didukung.
+# Di bawah itu komponen kunci (OpenVPN 2.4, HAProxy 1.8, Python lama)
+# berbeda terlalu jauh sehingga layanan TIDAK dijamin berfungsi,
+# jadi installer berhenti di sini dengan pesan yang jelas.
+os_version_ge() {
+    # os_version_ge <versi-minimum> <versi-os> -> sukses bila versi-os >= minimum
+    [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1)" = "$1" ]
+}
 
 # Validate supported OS versions
 os_supported=true
@@ -214,6 +221,12 @@ function print_success() {
         sleep 2
     fi
 }
+
+# Cek argumen domain
+if [ -n "$1" ]; then
+    DOMAIN="$1"
+    print_ok "Domain yang diberikan: $DOMAIN"
+fi
 
 ### Cek root
 function is_root() {
