@@ -1396,7 +1396,7 @@ rm -rf /root/domain
 rm -rf /etc/noobz
 mkdir -p /etc/noobz
 echo "" > /etc/xray/noob
-#sudo hostnamectl set-hostname $user
+
 secs_to_human "$(($(date +%s) - ${start}))"
 if [ -n "$username" ]; then
     hostnamectl set-hostname "$username" 2>/dev/null || true
