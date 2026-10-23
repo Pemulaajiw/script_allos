@@ -11,11 +11,13 @@ red() { echo -e "\\033[31;1m${*}\\033[0m"; }
 sysctl -w net.ipv6.conf.all.disable_ipv6=1 >/dev/null 2>&1
 sysctl -w net.ipv6.conf.default.disable_ipv6=1 >/dev/null 2>&1
 
-# Lock DNS resolver to prevent modification by cloud-init/DHCP/systemd-resolved
+# Unlock terlebih dahulu jika sebelumnya pernah dikunci, lalu set DNS
+chattr -i /etc/resolv.conf >/dev/null 2>&1
 rm -f /etc/resolv.conf
 echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" > /etc/resolv.conf
-chattr +i /etc/resolv.conf
-# === DEFINISI WARNA (Pindahkan ke sini agar bisa dibaca dari awal) ===
+chattr +i /etc/resolv.conf >/dev/null 2>&1
+
+# === DEFINISI WARNA ===
 Green="\e[92;1m"
 RED="\033[31m"
 YELLOW="\033[33m"
@@ -29,14 +31,18 @@ GRAY="\e[1;30m"
 NC='\e[0m'
 red='\e[1;31m'
 green='\e[0;32m'
-### Status
+yellow='\033[33m'
+neutral='\e[0m'
+
+# === FUNGSI STATUS ===
 function print_ok() {
     echo -e "${OK} ${BLUE} $1 ${FONT}"
 }
+
 function print_install() {
-	echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
     echo -e "${YELLOW} » $1 ${FONT}"
-	echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
     sleep 1
 }
 
@@ -46,12 +52,13 @@ function print_error() {
 
 function print_success() {
     if [[ 0 -eq $? ]]; then
-		echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-        echo -e "${Green} » $1 berhasil dipasang"
-		echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+        echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+        echo -e "${Green} » $1 berhasil dipasang${FONT}"
+        echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
         sleep 2
     fi
 }
+
 # === OTOMATISASI FIX HOSTNAME UBUNTU 20.04===
 CURRENT_HOSTNAME=$(hostname)
 if ! grep -q "$CURRENT_HOSTNAME" /etc/hosts; then
