@@ -72,11 +72,21 @@ sleep 2
 
 
 # // Checking Os Architecture
-if [[ $( uname -m | awk '{print $1}' ) == "x86_64" ]]; then
-    echo -e "${OK} Your Architecture Is Supported ( ${green}$( uname -m )${NC} )"
+# --- Deteksi Arsitektur dan OS ---
+ARCH=$(uname -m)
+if [[ "$ARCH" == "x86_64" ]] || [[ "$ARCH" == "aarch64" ]] || [[ "$ARCH" == "arm64" ]]; then
+    print_ok "Your Architecture Is Supported ( ${green}$ARCH${NC} )"
 else
-    echo -e "${ERROR} Your Architecture Is Not Supported ( ${YELLOW}$( uname -m )${NC} )"
+    print_error "Your Architecture Is Not Supported ( ${YELLOW}$ARCH${NC} )"
     exit 1
+fi
+
+# Biner bawaan (ws, ftvpn, udp-mini): files/ berisi biner x86-64,
+# files/arm64/ berisi biner aarch64. BINARCH menjadi segmen path
+# unduhan biner pada fungsi-fungsi install di bawah.
+BINARCH=""
+if [[ "$ARCH" == "aarch64" ]] || [[ "$ARCH" == "arm64" ]]; then
+    BINARCH="arm64/"
 fi
 
 # // Checking System
