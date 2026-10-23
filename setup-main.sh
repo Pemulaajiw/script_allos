@@ -1035,10 +1035,9 @@ gotop_latest="$(curl -s https://api.github.com/repos/xxxserxxx/gotop/releases | 
 function ins_Fail2ban(){
 clear
 print_install "Menginstall Fail2ban"
-#apt -y install fail2ban > /dev/null 2>&1
-#sudo systemctl enable --now fail2ban
-#/etc/init.d/fail2ban restart
-#/etc/init.d/fail2ban status
+apt -y install fail2ban > /dev/null 2>&1
+sudo systemctl enable --now fail2ban
+/etc/init.d/fail2ban restart
 
 # Instal DDOS Flate
 if [ -d '/usr/local/ddos' ]; then
@@ -1146,7 +1145,7 @@ systemctl restart haproxy
     systemctl enable --now ws
     systemctl enable --now fail2ban
     systemctl enable --now udp-custom
-    systemctl enable --NOW noobzvpns
+    systemctl enable --now noobzvpns
 history -c
 echo "unset HISTFILE" >> /etc/profile
 
@@ -1343,7 +1342,7 @@ chmod +x /etc/rc.local
     
     AUTOREB=$(cat /home/daily_reboot)
     SETT=11
-    if [ $AUTOREB -gt$SETT ]; then
+    if [ "$AUTOREB" -gt "$SETT" ]; then
         TIME_DATE="PM"
     else
         TIME_DATE="AM"
