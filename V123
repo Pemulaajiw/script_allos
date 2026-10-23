@@ -326,6 +326,7 @@ function first_setup(){
     fi
 
     print_success "Directory Xray"
+    print_ok "Setup Dependencies $os_pretty"
     ln -fs /usr/share/zoneinfo/$timezone /etc/localtime
 
     apt-get update -y || echo -e "${red}Failed to update package list${neutral}"
@@ -406,6 +407,45 @@ function first_setup(){
         print_error "Your OS Is Not Supported ( ${YELLOW}$os_pretty${NC} )"
         exit 1
     fi
+
+    sudo apt update -y
+    print_ok "Installing haproxy..."
+    # 2026-10-23 xmr12: build sumber tidak membuat user/group seperti paket apt; buat dulu sebelum validasi config
+    getent group haproxy >/dev/null 2>&1 || groupadd -r haproxy 2>/dev/null || true
+    getent passwd haproxy >/dev/null 2>&1 || useradd -r -g haproxy -s /usr/sbin/nologin haproxy 2>/dev/null || true
+    # HAProxy DIPIN 2.0.33 (terbukti di Aji02 + vps-utama 2026-10-23): apt stok
+    # Ubuntu 24.04 memberi 2.8, di mana opsi http-tunnel fatal dan payload
+    # SSH gagal 301 lalu 400. Bila haproxy terpasang >= 2.1, build 2.0.33
+    # dari source dengan dukungan systemd, lalu ganti binary-nya.
+    if command -v haproxy >/dev/null 2>&1 && [ "$(haproxy -v 2>/dev/null | head -1 | sed 's/[^0-9.]//g' | cut -d. -f1-2)" = "2.0" ]; then
+        print_ok "HAProxy sudah 2.0, lewati instalasi."
+    elif true; then
+        print_ok "Mengganti HAProxy stok dengan 2.0.33 (build source)..."
+        apt install -y libssl-dev libpcre3-dev libsystemd-dev gcc make wget || print_error "Gagal menginstal dependensi build HAProxy."
+        systemctl stop haproxy 2>/dev/null || true
+        cp /usr/sbin/haproxy /root/haproxy-stock.bak 2>/dev/null || true
+        cd /tmp && wget -q https://www.haproxy.org/download/2.0/src/haproxy-2.0.33.tar.gz && tar xzf haproxy-2.0.33.tar.gz && cd haproxy-2.0.33 && make -j"$(nproc)" TARGET=linux-glibc USE_OPENSSL=1 USE_ZLIB=1 USE_PCRE=1 USE_SYSTEMD=1 >/dev/null 2>&1 && cp haproxy /usr/sbin/haproxy || print_error "Gagal build/install HAProxy 2.0.33."
+        cd /root || true
+    fi
+    # 2026-10-23 xmr12: build sumber tidak membuat unit systemd; buat unitnya di sini, enable/start dilakukan tahap enable_services
+    mkdir -p /etc/systemd/system
+    cat > /etc/systemd/system/haproxy.service <<'HAPROXYUNIT'
+[Unit]
+Description=HAProxy Load Balancer
+After=network.target
+[Service]
+Type=notify
+ExecStartPre=/usr/sbin/haproxy -c -f /etc/haproxy/haproxy.cfg
+ExecStart=/usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -p /run/haproxy.pid
+ExecReload=/bin/kill -USR2 $MAINPID
+KillMode=mixed
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
+HAPROXYUNIT
+    systemctl daemon-reload 2>/dev/null || true
+    print_success "HAProxy Installation"
+    print_ok "first_setup SELESAI"
 }
 
 function nginx_install() {
