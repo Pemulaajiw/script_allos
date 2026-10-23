@@ -1402,8 +1402,10 @@ rm -rf /etc/noobz
 mkdir -p /etc/noobz
 echo "" > /etc/xray/noob
 #sudo hostnamectl set-hostname $user
-secs_to_human "$(($(date +\%s) -${start}))"
-sudo hostnamectl set-hostname $username
+secs_to_human "$(($(date +%s) - ${start}))"
+if [ -n "$username" ]; then
+    hostnamectl set-hostname "$username" 2>/dev/null || true
+fi
 echo ""
 echo -e "\e[94;1m╔═════════════════════════════════════════════════╗\e[0m"
 echo -e "\e[96;1m          -[ FANSAJA TUNNELING PROJECT ]-                 \e[0m"
