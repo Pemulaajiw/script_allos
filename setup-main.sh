@@ -854,16 +854,16 @@ apt install dropbear -y || print_error "Gagal menginstal Dropbear."
 # // Installing Dropbear
 if [ -n "$dropbear_conf_url" ]; then
 [ -f /etc/default/dropbear ] && rm /etc/default/dropbear
-wget -q -O /etc/default/dropbear $dropbear_conf_url >/dev/null 2>&1 \vert{}\vert{} echo -e "${red}Failed to download dropbear.conf${neutral}"
+wget -q -O /etc/default/dropbear $dropbear_conf_url >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear.conf${neutral}"
 [ -f /etc/init.d/dropbear ] && rm /etc/init.d/dropbear
-wget -q -O /etc/init.d/dropbear $dropbear_init_url && chmod +x /etc/init.d/dropbear >/dev/null 2>&1 \vert{}\vert{} echo -e "${red}Failed to download dropbear.init${neutral}"
+wget -q -O /etc/init.d/dropbear $dropbear_init_url && chmod +x /etc/init.d/dropbear >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear.init${neutral}"
 [ -f /etc/dropbear/dropbear_dss_host_key ] && rm /etc/dropbear/dropbear_dss_host_key
 wget -q -O /etc/dropbear/dropbear_dss_host_key $dropbear_dss_url && chmod +x /etc/dropbear/dropbear_dss_host_key >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear_dss_host_key${neutral}"
 else
 echo -e "${yellow}dropbear_conf_url is not set, skipping download of dropbear_dss_host_key${neutral}"
 fi
 if [ -n "$banner_url" ]; then
-wget -q -O /etc/gerhanatunnel.txt $banner_url && chmod +x /etc/gerhanatunnel.txt >/dev/null 2>&1 \vert{}\vert{} echo -e "${red}Failed to download gerhanatunnel.txt${neutral}"
+wget -q -O /etc/gerhanatunnel.txt $banner_url && chmod +x /etc/gerhanatunnel.txt >/dev/null 2>&1 || echo -e "${red}Failed to download gerhanatunnel.txt${neutral}"
 else
 echo -e "${yellow}banner_url is not set, skipping download of gerhanatunnel.txt${neutral}"
 fi
