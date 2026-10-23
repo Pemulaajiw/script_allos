@@ -220,16 +220,11 @@ if ! command -v compat_service >/dev/null 2>&1; then
         return 1
     }
 fi
+
 start=$(date +%s)
 secs_to_human() {
     echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
 }
-
-# Cek argumen domain
-if [ -n "$1" ]; then
-    DOMAIN="$1"
-    print_ok "Domain yang diberikan: $DOMAIN"
-fi
 
 ### Cek root
 function is_root() {
