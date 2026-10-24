@@ -247,7 +247,6 @@ function base_package() {
     compat_apt_try "netcat-openbsd" "netcat-traditional" "netcat" || print_ok "netcat dilewati"
 
     print_ok "Memperbarui dan memutakhirkan sistem..."
-    # Tahan paket grub agar tidak memunculkan pop-up interaktif saat upgrade
     apt-mark hold grub-pc grub-efi-amd64-signed 2>/dev/null || true
     apt-get update -y
     apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
@@ -280,7 +279,6 @@ function base_package() {
 
     print_ok "Menghapus paket MTA bawaan yang konflik..."
     apt-get remove --purge exim4 -y 2>/dev/null || true
-    # UFW / Firewalld tidak di-purge paksa agar keamanan sistem tetap terjaga
 
     print_ok "Menginstal software-properties-common..."
     compat_apt_install software-properties-common 2>/dev/null || print_ok "software-properties-common dilewati (Debian 12+)."
