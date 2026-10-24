@@ -481,37 +481,52 @@ function nginx_install() {
 clear
 # Fungsi input domain
 function pasang_domain() {
-echo -e ""
-clear
-echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e " \e[1;32mPlease Select a Domain Type Below \e[0m"
-echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e " \e[1;32m1)\e[0m Menggunakan Domain Sendiri ( Recommendation )"
-echo -e " \e[1;32m2)\e[0m Menggunakan Domain script"
-echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-read -r -p " Please select numbers 1-2 or Any Button(Random) : " host
-echo ""
-if [[ $host == "1" ]]; then
-echo -e " \e[1;32mPlease Enter Your Subdomain $NC"
-echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-echo -e ""
-# FIX: menambahkan flag -r di sini
-read -r -p " Masukan Domain : " host1
-echo -e ""
-echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-echo "IP=" >> /var/lib/kyt/ipvps.conf
-echo $host1 > /etc/xray/domain
-echo $host1 > /root/domain
-echo ""
-elif [[ $host == "2" ]]; then
-#install cf
-wget ${REPO}files/cf.sh && chmod +x cf.sh && ./cf.sh
-rm -f /root/cf.sh
-clear
-else
-print_install "Random Subdomain/Domain is Used"
-clear
+if [ -n "$DOMAIN" ]; then
+        print_ok "Menggunakan domain yang sudah ditentukan: $DOMAIN"
+        echo "IP=" >> /var/lib/kyt/ipvps.conf
+        echo "$DOMAIN" > /etc/xray/domain
+        echo "$DOMAIN" > /root/domain
+        export domain="$DOMAIN"
+        return 0
     fi
+    echo -e ""
+    clear
+    echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e " \e[1;32mPlease Select a Domain Type Below \e[0m"
+    echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e " \e[1;32m1)\e[0m Menggunakan Domain Sendiri ( Recommendation )"
+    echo -e " \e[1;32m2)\e[0m Menggunakan Domain script"
+    echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    read -r -p " Please select numbers 1-2 or Any Button(Random) : " host
+    echo ""
+    if [[ $host == "1" ]]; then
+        echo -e " \e[1;32mPlease Enter Your Subdomain $NC"
+        echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e ""
+        read -r -p " Masukan Domain : " host1
+        echo -e ""
+        echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo "IP=" >> /var/lib/kyt/ipvps.conf
+        echo "$host1" > /etc/xray/domain
+        echo "$host1" > /root/domain
+        echo ""
+    elif [[ $host == "2" ]]; then
+        wget "${REPO}files/cf.sh" && chmod +x cf.sh && ./cf.sh
+        rm -f /root/cf.sh
+        clear
+    else
+        print_install "Random Subdomain/Domain is Used"
+        wget "${REPO}files/cf.sh" && chmod +x cf.sh && ./cf.sh
+        rm -f /root/cf.sh
+        clear
+    fi
+    if [ -s /etc/xray/domain ]; then
+        export DOMAIN=$(cat /etc/xray/domain)
+    elif [ -s /root/domain ]; then
+        export DOMAIN=$(cat /root/domain)
+        cp /root/domain /etc/xray/domain
+    fi
+    export domain="$DOMAIN"
 }
 clear
 #GANTI PASSWORD DEFAULT
