@@ -1147,43 +1147,39 @@ print_success "Dropbear"
 clear
 function ins_vnstat(){
 clear
-print_install "MENJALANKAN ins_vnstat"
+    print_install "MENJALANKAN ins_vnstat"
     print_ok "Menginstal vnstat dari repositori..."
-    apt -y install vnstat || print_error "Gagal menginstal vnstat dari repositori."
+    apt-get -y install vnstat || print_error "Gagal menginstal vnstat dari repositori."
     print_ok "Memeriksa versi vnstat..."
     VNSTAT_VERSION=$(vnstat --version 2>/dev/null | head -n1 | awk '{print $2}' | cut -d'.' -f1-2)
     REQUIRED_VERSION="2.6"
-    VERSION_OK=$(awk -v ver="$VNSTAT_VERSION" -v req="$REQUIRED_VERSION" 'BEGIN { print (ver >= req) }')
+    VERSION_OK=$(awk -v ver="${VNSTAT_VERSION:-0}" -v req="$REQUIRED_VERSION" 'BEGIN { print (ver >= req) }')
     if [[ $VERSION_OK -eq 1 ]]; then
         print_ok "Vnstat versi $VNSTAT_VERSION sudah cukup."
     else
         print_ok "Vnstat versi $VNSTAT_VERSION lebih lama dari $REQUIRED_VERSION. Mengkompilasi dari sumber..."
-        apt install -y libsqlite3-dev build-essential || print_error "Gagal menginstal dependensi build untuk vnstat."
+        apt-get install -y libsqlite3-dev build-essential || print_error "Gagal menginstal dependensi build untuk vnstat."
         cd /tmp || exit 1
         wget --timeout=30 --tries=2 -O vnstat-2.6.tar.gz https://humdi.net/vnstat/vnstat-2.6.tar.gz || print_error "Gagal mengunduh sumber vnstat."
         tar zxvf vnstat-2.6.tar.gz || print_error "Gagal mengekstrak sumber vnstat."
         cd vnstat-2.6 || exit 1
         ./configure --prefix=/usr --sysconfdir=/etc && make && make install || print_error "Gagal mengkompilasi atau menginstal vnstat."
-        cd / || exit 1
+        cd /root || true
         rm -rf /tmp/vnstat-2.6*
     fi
     NET=$(ip -4 route show default | awk '{print $5}' | head -n1)
     if [[ -z "$NET" ]]; then
-       NET="eth0"
-       print_error "Interface jaringan tidak terdeteksi, menggunakan fallback: $NET"
+        NET="eth0"
+        print_error "Interface jaringan tidak terdeteksi, menggunakan fallback: $NET"
     fi
     print_ok "Interface jaringan yang digunakan: $NET"
-    # Inisialisasi database sadar generasi vnStat:
-    # - vnStat 1.x: 'vnstat -u -i <iface>' yang membuat database.
-    # - vnStat 2.x (Debian 11+/Ubuntu 22.04+): opsi -u sudah tidak ada;
-    #   database dikelola daemon, interface didaftarkan via --add.
     if [[ "${VNSTAT_VERSION%%.*}" == "1" ]]; then
         vnstat -u -i "$NET" || print_ok "Gagal menginisialisasi database vnstat untuk $NET (mungkin sudah ada)."
     else
         vnstat --add -i "$NET" >/dev/null 2>&1 || true
         print_ok "vnStat ${VNSTAT_VERSION}: database interface $NET dikelola daemon vnstat."
     fi
-    sed -i "s/Interface \"eth0\"/Interface \"$NET\"/g" /etc/vnstat.conf
+    sed -i "s/Interface \"eth0\"/Interface \"$NET\"/g" /etc/vnstat.conf 2>/dev/null || true
     chown vnstat:vnstat /var/lib/vnstat -R || print_error "Gagal mengatur ownership untuk /var/lib/vnstat."
     compat_service enable vnstat || print_error "Gagal mengaktifkan layanan vnstat."
     compat_service restart vnstat || print_error "Gagal merestart layanan vnstat."
