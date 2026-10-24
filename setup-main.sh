@@ -1766,7 +1766,6 @@ clear
 print_success "DNS Setup Complete"
 history -c
 rm -f /root/openvpn /root/openvpn_setup.sh /root/key.pem /root/cert.pem /root/bbr.sh /root/limit.sh /root/random.sh /root/menu.zip
-# 2026-10-23 xmr12: /root/domain TIDAK dihapus (dibutuhkan renew + run ulang)
 rm -rf /root/menu
 rm -rf /root/*.zip
 rm -rf /root/*.sh
