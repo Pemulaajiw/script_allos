@@ -339,6 +339,7 @@ print_install "Membuat direktori xray"
 
 # Change Environment System
 function first_setup(){
+    export DEBIAN_FRONTEND=noninteractive
     timedatectl set-timezone Asia/Jakarta
     source /etc/os-release
     os_id=$ID
