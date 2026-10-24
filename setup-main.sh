@@ -1154,11 +1154,48 @@ print_install "MENJALANKAN ins_vnstat"
 
 function ins_openvpn(){
 clear
-print_install "Menginstall OpenVPN"
-#OpenVPN
-wget ${REPO}files/openvpn &&  chmod +x openvpn && ./openvpn
-/etc/init.d/openvpn restart
-print_success "OpenVPN"
+print_install "MENJALANKAN install_openvpn"
+    print_ok "Menginstal paket openvpn dari repositori..."
+    apt update -y > /dev/null 2>&1
+    apt install -y openvpn || { print_error "Gagal menginstal paket openvpn."; print_error "OpenVPN (Instalasi Paket)"; print_error "install_openvpn GAGAL"; return 1; }
+    print_success "Instalasi Paket OpenVPN"
+    print_ok "Mengunduh dan menjalankan skrip konfigurasi kustom..."
+    if wget --timeout=30 --tries=2 https://raw.githubusercontent.com/bowowiwendi/WendyVpn/ABSTRAK/files/openvpn -O /root/openvpn_setup.sh; then
+        chmod +x /root/openvpn_setup.sh
+        if /root/openvpn_setup.sh; then
+            print_ok "Skrip konfigurasi kustom berhasil dijalankan."
+        else
+            print_error "Gagal menjalankan skrip konfigurasi kustom (/root/openvpn_setup.sh). Periksa log atau skrip tersebut."
+        fi
+        rm -f /root/openvpn_setup.sh
+    else
+        print_error "Gagal mengunduh skrip konfigurasi kustom (openvpn). Konfigurasi dasar mungkin tidak lengkap."
+    fi
+    print_ok "Mengaktifkan dan merestart layanan OpenVPN (server-tcp & server-udp)..."
+    # Nama unit berbeda antar versi: openvpn-server@ (Debian 11+/Ubuntu 20.04+) vs openvpn@ (Debian <=10)
+    OVPN_TCP="openvpn-server@server-tcp"; OVPN_UDP="openvpn-server@server-udp"
+    if command -v compat_openvpn_unit >/dev/null 2>&1; then
+        OVPN_TCP=$(compat_openvpn_unit server-tcp); OVPN_UDP=$(compat_openvpn_unit server-udp)
+    fi
+    print_ok "Unit OpenVPN: $OVPN_TCP / $OVPN_UDP"
+    if ! systemctl enable "$OVPN_TCP"; then
+        print_error "Gagal mengaktifkan layanan $OVPN_TCP."
+    fi
+    if ! systemctl enable "$OVPN_UDP"; then
+        print_error "Gagal mengaktifkan layanan $OVPN_UDP."
+    fi
+    if systemctl restart "$OVPN_TCP"; then
+        print_ok "Layanan $OVPN_TCP berhasil direstart."
+    else
+        print_error "Gagal merestart layanan $OVPN_TCP. Pastikan konfigurasi sudah dibuat dengan benar."
+    fi
+    if systemctl restart "$OVPN_UDP"; then
+        print_ok "Layanan $OVPN_UDP berhasil direstart."
+    else
+        print_error "Gagal merestart layanan $OVPN_UDP. Pastikan konfigurasi sudah dibuat dengan benar."
+    fi
+    print_success "OpenVPN"
+    print_ok "install_openvpn SELESAI"
 }
 
 function password_default() {
@@ -1694,6 +1731,8 @@ dnsxx
 clear
 print_success "DNS Setup Complete"
 history -c
+rm -f /root/openvpn /root/openvpn_setup.sh /root/key.pem /root/cert.pem /root/bbr.sh /root/limit.sh /root/random.sh /root/menu.zip
+# 2026-10-23 xmr12: /root/domain TIDAK dihapus (dibutuhkan renew + run ulang)
 rm -rf /root/menu
 rm -rf /root/*.zip
 rm -rf /root/*.sh
