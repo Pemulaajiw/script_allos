@@ -1766,10 +1766,6 @@ clear
 print_success "DNS Setup Complete"
 history -c
 rm -f /root/openvpn /root/openvpn_setup.sh /root/key.pem /root/cert.pem /root/bbr.sh /root/limit.sh /root/random.sh /root/menu.zip
-rm -rf /root/menu
-rm -rf /root/*.zip
-rm -f /root/LICENSE /root/README.md
-rm -rf /etc/noobz
 mkdir -p /etc/noobz
 echo "" > /etc/xray/noob
 
