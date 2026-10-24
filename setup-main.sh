@@ -722,17 +722,12 @@ rm -rf /etc/vmess/.vmess.db
 function install_xray() {
 clear
 print_install "MENJALANKAN install_xray"
-    # PERINGATAN: cfg_conf_js/config.json memakai inbound legacy
-    # 'dokodemo-door' yang sudah deprecated di Xray-core. Pin v25.1.30
-    # ini aman; menaikkan pin Xray WAJIB diikuti uji inbound
-    # dokodemo-door karena inbound itu bisa dihapus di rilis mendatang.
     XRAY_VERSION="v25.1.30"
     domainSock_dir="/run/xray"
-    ! [ -d "$domainSock_dir" ] && mkdir "$domainSock_dir"
-    chown www-data.www-data "$domainSock_dir"
+    ! [ -d "$domainSock_dir" ] && mkdir -p "$domainSock_dir"
+    chown www-data:www-data "$domainSock_dir"
     print_ok "Memaksa menginstal Xray versi: $XRAY_VERSION"
-    # 2026-10-23 xmr12: jangan pakai skrip installer upstream (menolak argumen di VPS ini);
-    # unduh langsung aset resmi + guard ukuran, seperti rebuild manual yang terbukti.
+
     case "$(uname -m)" in
         x86_64|amd64) XRAY_ZIP="Xray-linux-64.zip" ;;
         aarch64|arm64) XRAY_ZIP="Xray-linux-arm64-v8a.zip" ;;
@@ -742,7 +737,11 @@ print_install "MENJALANKAN install_xray"
     rm -f "/tmp/${XRAY_ZIP}"
     curl --connect-timeout 30 -L -o "/tmp/${XRAY_ZIP}" "$XRAY_URL" || { print_error "Gagal mengunduh Xray $XRAY_VERSION"; exit 1; }
     XRAY_SIZE=$(stat -c%s "/tmp/${XRAY_ZIP}" 2>/dev/null || echo 0)
-    if [ "$XRAY_SIZE" -lt 10000000 ]; then print_error "Unduhan Xray mencurigakan (ukuran $XRAY_SIZE byte, diduga halaman error)"; rm -f "/tmp/${XRAY_ZIP}"; exit 1; fi
+    if [ "$XRAY_SIZE" -lt 10000000 ]; then
+        print_error "Unduhan Xray mencurigakan (ukuran $XRAY_SIZE byte, diduga halaman error)"
+        rm -f "/tmp/${XRAY_ZIP}"
+        exit 1
+    fi
     mkdir -p /usr/local/bin /usr/local/share/xray
     rm -rf /tmp/xray-extract
     unzip -o "/tmp/${XRAY_ZIP}" xray geoip.dat geosite.dat -d /tmp/xray-extract >/dev/null 2>&1 || { print_error "Gagal mengekstrak ${XRAY_ZIP}"; exit 1; }
@@ -751,6 +750,7 @@ print_install "MENJALANKAN install_xray"
     cp /tmp/xray-extract/geosite.dat /usr/local/share/xray/geosite.dat 2>/dev/null || true
     chmod 644 /usr/local/share/xray/geoip.dat /usr/local/share/xray/geosite.dat 2>/dev/null || true
     rm -rf /tmp/xray-extract "/tmp/${XRAY_ZIP}"
+
     print_ok "Memverifikasi versi Xray..."
     /usr/local/bin/xray version
     wget --timeout=30 --tries=2 -O /etc/xray/config.json "${REPO}config/config.json" || print_error "Gagal mengunduh config.json"
@@ -758,41 +758,50 @@ print_install "MENJALANKAN install_xray"
         grep -q "$_m" /etc/xray/config.json || print_error "Marker Xray hilang dari config.json: $_m"
     done
     wget --timeout=30 --tries=2 -O /etc/systemd/system/runn.service "${REPO}files/runn.service" || print_error "Gagal mengunduh runn.service"
-    domain="$DOMAIN"
-    IPVS="$ipsaya"
+    domain="${DOMAIN:-$(cat /etc/xray/domain 2>/dev/null || cat /root/domain 2>/dev/null)}"
+    IPVS="${ipsaya:-$(cat /etc/xray/ipvps 2>/dev/null)}"
     print_success "Core Xray $XRAY_VERSION"
+
     clear
     _city=$(curl --connect-timeout 30 -s ipinfo.io/city); [ -n "$_city" ] || _city="Unknown"
     printf '%s' "$_city" > /etc/xray/city
     _isp=$(curl --connect-timeout 30 -s ipinfo.io/org | cut -d " " -f 2-10); [ -n "$_isp" ] || _isp="Unknown"
     printf '%s' "$_isp" > /etc/xray/isp
+
     print_install "Memasang Konfigurasi Packet"
-    wget --timeout=30 --tries=2 -O /etc/haproxy/haproxy.cfg "${REPO}config/haproxy.cfg" || print_error "Gagal mengunduh haproxy.cfg."
-    wget --timeout=30 --tries=2 -O /etc/nginx/conf.d/xray.conf "${REPO}config/xray.conf" || print_error "Gagal mengunduh xray.conf."
+    mkdir -p /etc/haproxy /etc/nginx/conf.d
+    wget --timeout=30 --tries=2 -O /etc/haproxy/haproxy.cfg "${REPO}config/haproxy.cfg" 2>/dev/null \
+        || wget --timeout=30 --tries=2 -O /etc/haproxy/haproxy.cfg "https://raw.githubusercontent.com/joytun21/schaya/main/other/haproxy.cfg" \
+        || print_error "Gagal mengunduh haproxy.cfg."
+    wget --timeout=30 --tries=2 -O /etc/nginx/conf.d/xray.conf "${REPO}config/xray.conf" 2>/dev/null \
+        || wget --timeout=30 --tries=2 -O /etc/nginx/conf.d/xray.conf "https://raw.githubusercontent.com/joytun21/scjoy/main/ssh/xray.conf" \
+        || print_error "Gagal mengunduh xray.conf."
+
     sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
     sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
-    # HAProxy 1.8 (Ubuntu 18.04/Debian 10) tidak mengenal keyword 1.9+
-    # (tune.h2.*, ssl-default-bind-ciphersuites) -> config gagal total.
-    # Validasi & buang baris yang tidak didukung otomatis.
-    if command -v haproxy >/dev/null 2>&1; then
-        if ! haproxy -c -f /etc/haproxy/haproxy.cfg >/dev/null 2>&1; then
-            print_ok "HAProxy lama terdeteksi, menyesuaikan konfigurasi..."
-            sed -i '/tune\.h2\./d; /ssl-default-bind-ciphersuites/d' /etc/haproxy/haproxy.cfg
-            haproxy -c -f /etc/haproxy/haproxy.cfg >/dev/null 2>&1 || print_error "Config HAProxy tetap tidak valid."
-        fi
-    fi
-    curl --connect-timeout 30 -fsS "${REPO}config/nginx.conf" > /etc/nginx/nginx.conf || print_error "Gagal mengunduh nginx.conf (default package tetap terpakai!)."
-    # Hapus default site nginx agar tidak berebut port 80/443 dengan haproxy
+    sed -i '/option http-tunnel/d' /etc/haproxy/haproxy.cfg 2>/dev/null || true
+
+    curl --connect-timeout 30 -fsS "${REPO}config/nginx.conf" > /etc/nginx/nginx.conf || print_error "Gagal mengunduh nginx.conf."
     rm -f /etc/nginx/sites-enabled/* /etc/nginx/sites-available/default 2>/dev/null
-    # Systemd: nginx start SETELAH haproxy agar tidak ada race port di boot
+
     mkdir -p /etc/systemd/system/nginx.service.d
     cat > /etc/systemd/system/nginx.service.d/order.conf <<'SYSDFIX'
 [Unit]
 After=haproxy.service
 Wants=haproxy.service
 SYSDFIX
-    cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
-chmod 600 /etc/haproxy/hap.pem
+
+    cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem >/dev/null
+    chmod 600 /etc/haproxy/hap.pem
+
+    if command -v haproxy >/dev/null 2>&1; then
+        if ! haproxy -c -f /etc/haproxy/haproxy.cfg >/dev/null 2>&1; then
+            print_ok "Menyesuaikan konfigurasi HAProxy..."
+            sed -i '/tune\.h2\./d; /ssl-default-bind-ciphersuites/d' /etc/haproxy/haproxy.cfg
+            haproxy -c -f /etc/haproxy/haproxy.cfg >/dev/null 2>&1 || print_error "Config HAProxy tetap tidak valid."
+        fi
+    fi
+
     chmod +x /etc/systemd/system/runn.service
     rm -rf /etc/systemd/system/xray.service.d
     cat >/etc/systemd/system/xray.service <<EOF
@@ -800,6 +809,7 @@ chmod 600 /etc/haproxy/hap.pem
 Description=Xray Service
 Documentation=https://github.com
 After=network.target nss-lookup.target
+
 [Service]
 User=www-data
 CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
@@ -810,10 +820,11 @@ Restart=on-failure
 RestartPreventExitStatus=23
 LimitNPROC=10000
 LimitNOFILE=1000000
+
 [Install]
 WantedBy=multi-user.target
 EOF
-    # 2026-10-23 xmr12: pastikan geoip/geosite ada sebelum service pertama kali jalan, dan uji config sebelum enable
+
     mkdir -p /usr/local/share/xray
     [ -s /usr/local/share/xray/geoip.dat ] || wget --timeout=30 --tries=2 -q -O /usr/local/share/xray/geoip.dat "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" || print_error "Gagal mengunduh geoip.dat."
     [ -s /usr/local/share/xray/geosite.dat ] || wget --timeout=30 --tries=2 -q -O /usr/local/share/xray/geosite.dat "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" || print_error "Gagal mengunduh geosite.dat."
