@@ -915,11 +915,157 @@ print_success "Limit IP Service"
 function ssh_slow(){
 clear
 # // Installing UDP Mini
-print_install "Memasang modul SlowDNS Server"
-    wget -q -O /tmp/nameserver "${REPO}files/nameserver" >/dev/null 2>&1
-    chmod +x /tmp/nameserver
-    bash /tmp/nameserver | tee /root/install.log
- print_success "SlowDNS"
+print_install "MENJALANKAN ssh_slow"
+    # --- SlowDNS (DNSTT) ---
+    # Server DNS-tunnel untuk SSH, dibangun dari source dnstt resmi
+    # (bamsoftware) dan disimpan di repo sebagai files/slowdns (server)
+    # dan files/slowdns-client (client). Kontrak yang dipakai menu-menu:
+    #   - domain NS dibaca dari /root/nsdomain
+    #   - public key dibaca dari /etc/slowdns/server.pub
+    #   - biner terpasang: /etc/slowdns/sldns-server & /etc/slowdns/sldns-client
+    #   - unit systemd: server-sldns.service & client-sldns.service
+    #   - server mendengar UDP 5300; publik masuk lewat REDIRECT UDP 53 -> 5300
+    #   - backend SSH: 127.0.0.1:22; client lokal mendengar 127.0.0.1:2222
+    local SLDNS_PORT=5300
+    local SLDNS_SSH_PORT=22
+    local SLDNS_CLIENT_PORT=2222
+    mkdir -p /etc/slowdns
+
+    # Domain utama hasil pasang_domain ($DOMAIN / /etc/xray/domain / /root/domain)
+    local MAIN_DOMAIN="${DOMAIN:-}"
+    if [[ -z "$MAIN_DOMAIN" && -f /etc/xray/domain ]]; then
+        MAIN_DOMAIN=$(cat /etc/xray/domain)
+    fi
+    if [[ -z "$MAIN_DOMAIN" && -f /root/domain ]]; then
+        MAIN_DOMAIN=$(cat /root/domain)
+    fi
+
+    # Zona utama = domain tanpa label pertama (bila >= 3 label).
+    # Domain NS = "slowdns." + zona utama, disimpan ke /root/nsdomain.
+    local ZONE_DOMAIN="$MAIN_DOMAIN"
+    if [[ $(echo "$MAIN_DOMAIN" | awk -F. '{print NF}') -ge 3 ]]; then
+        ZONE_DOMAIN=$(echo "$MAIN_DOMAIN" | cut -d. -f2-)
+    fi
+    local NS_DOMAIN=""
+    if [[ -f /root/nsdomain ]]; then
+        NS_DOMAIN=$(cat /root/nsdomain)
+    elif [[ -n "$MAIN_DOMAIN" ]]; then
+        NS_DOMAIN="slowdns.${ZONE_DOMAIN}"
+        echo "$NS_DOMAIN" > /root/nsdomain
+        echo "$NS_DOMAIN" > /etc/xray/dns
+    fi
+    if [[ -z "$NS_DOMAIN" ]]; then
+        print_error "Domain utama tidak ditemukan; SlowDNS dilewati. Isi /root/nsdomain lalu jalankan ulang installer."
+        print_ok "ssh_slow SELESAI"
+        return
+    fi
+    print_ok "Domain SlowDNS (NS): $NS_DOMAIN"
+
+    # Unduh biner sesuai arsitektur (pola BINARCH sama seperti ws/ftvpn/udp-mini)
+    wget --timeout=30 --tries=2 -O /etc/slowdns/sldns-server "${REPO}files/${BINARCH}slowdns" || print_error "Gagal mengunduh biner SlowDNS server."
+    wget --timeout=30 --tries=2 -O /etc/slowdns/sldns-client "${REPO}files/${BINARCH}slowdns-client" || print_error "Gagal mengunduh biner SlowDNS client."
+    chmod +x /etc/slowdns/sldns-server /etc/slowdns/sldns-client
+
+    # Keypair BARU per install — kunci privat tidak pernah disimpan di repo.
+    # Idempotent: pasangan yang sudah ada dipertahankan.
+    if [[ -f /etc/slowdns/server.key && -f /etc/slowdns/server.pub ]]; then
+        print_ok "Keypair SlowDNS sudah ada, dipertahankan."
+    else
+        rm -f /etc/slowdns/server.key /etc/slowdns/server.pub
+        /etc/slowdns/sldns-server -gen-key -privkey-file /etc/slowdns/server.key -pubkey-file /etc/slowdns/server.pub || print_error "Gagal membuat keypair SlowDNS."
+        print_ok "Keypair SlowDNS baru dibuat di /etc/slowdns."
+    fi
+    chmod 600 /etc/slowdns/server.key
+    chmod 644 /etc/slowdns/server.pub
+
+    # Unit systemd (nama mengikuti pakem repo: server-sldns & client-sldns)
+    cat > /etc/systemd/system/server-sldns.service <<-EOF
+[Unit]
+Description=SlowDNS Server (DNSTT)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/etc/slowdns/sldns-server -udp :${SLDNS_PORT} -privkey-file /etc/slowdns/server.key ${NS_DOMAIN} 127.0.0.1:${SLDNS_SSH_PORT}
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    cat > /etc/systemd/system/client-sldns.service <<-EOF
+[Unit]
+Description=SlowDNS Client (DNSTT)
+After=network.target server-sldns.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/etc/slowdns/sldns-client -udp 127.0.0.1:${SLDNS_PORT} -pubkey-file /etc/slowdns/server.pub ${NS_DOMAIN} 127.0.0.1:${SLDNS_CLIENT_PORT}
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    # Firewall: terima UDP 5300 + REDIRECT UDP 53 publik -> 5300 (idempotent),
+    # lalu simpan persisten dengan pola yang sama seperti ins_epro.
+    iptables -C INPUT -p udp --dport ${SLDNS_PORT} -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport ${SLDNS_PORT} -j ACCEPT || print_error "Gagal membuka UDP ${SLDNS_PORT}."
+    iptables -t nat -C PREROUTING -p udp --dport 53 -j REDIRECT --to-ports ${SLDNS_PORT} 2>/dev/null || iptables -t nat -I PREROUTING -p udp --dport 53 -j REDIRECT --to-ports ${SLDNS_PORT} || print_error "Gagal membuat REDIRECT UDP 53."
+    iptables-save > /etc/iptables.up.rules || print_error "Gagal menyimpan aturan iptables SlowDNS."
+    if command -v compat_firewall_save >/dev/null 2>&1; then
+        compat_firewall_save || print_error "Gagal menyimpan konfigurasi firewall."
+    else
+        netfilter-persistent save 2>/dev/null || iptables-persistent save 2>/dev/null || print_ok "Penyimpanan firewall persisten dilewati."
+    fi
+
+    systemctl daemon-reload
+    systemctl enable server-sldns client-sldns || print_error "Gagal mengaktifkan layanan SlowDNS."
+    systemctl restart server-sldns || print_error "Gagal memulai server-sldns."
+    systemctl restart client-sldns || print_ok "client-sldns belum jalan (port ${SLDNS_CLIENT_PORT} mungkin dipakai proses lain); server SlowDNS tetap aktif."
+
+    # Record DNS: dibuat otomatis bila kredensial Cloudflare tersedia
+    # (/root/.cf_key berisi CF_ID & CF_KEY, pola yang sama seperti script
+    # DNS lain di repo). Bila tidak ada/gagal: cetak instruksi manual yang
+    # jelas — jangan pernah gagal diam-diam.
+    local SERVER_IP=""
+    SERVER_IP=$(curl --connect-timeout 10 -s ipv4.icanhazip.com)
+    if [[ -z "$SERVER_IP" ]]; then
+        SERVER_IP=$(curl --connect-timeout 10 -s ipinfo.io/ip)
+    fi
+    if [[ -f /root/.cf_key ]]; then
+        . /root/.cf_key
+    fi
+    local CF_DONE=0
+    if [[ -n "${CF_ID:-}" && -n "${CF_KEY:-}" && -n "$SERVER_IP" && -n "$ZONE_DOMAIN" ]]; then
+        local ZONE_ID=""
+        ZONE_ID=$(curl --connect-timeout 30 -sLX GET "https://api.cloudflare.com/client/v4/zones?name=${ZONE_DOMAIN}&status=active" \
+            -H "X-Auth-Email: ${CF_ID}" -H "X-Auth-Key: ${CF_KEY}" -H "Content-Type: application/json" \
+            | grep -o '"id":"[^"]*"' | head -n1 | cut -d'"' -f4)
+        if [[ -n "$ZONE_ID" ]]; then
+            curl --connect-timeout 30 -sLX POST "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records" \
+                -H "X-Auth-Email: ${CF_ID}" -H "X-Auth-Key: ${CF_KEY}" -H "Content-Type: application/json" \
+                --data '{"type":"A","name":"'"${NS_DOMAIN}"'","content":"'"${SERVER_IP}"'","ttl":120,"proxied":false}' >/dev/null
+            curl --connect-timeout 30 -sLX POST "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records" \
+                -H "X-Auth-Email: ${CF_ID}" -H "X-Auth-Key: ${CF_KEY}" -H "Content-Type: application/json" \
+                --data '{"type":"NS","name":"'"${NS_DOMAIN}"'","content":"'"${NS_DOMAIN}"'","ttl":120,"proxied":false}' >/dev/null
+            CF_DONE=1
+            print_ok "Record DNS SlowDNS dibuat via Cloudflare: A ${NS_DOMAIN} -> ${SERVER_IP} dan NS ${NS_DOMAIN} -> ${NS_DOMAIN}."
+        else
+            print_ok "Zona ${ZONE_DOMAIN} tidak ditemukan di akun Cloudflare; pembuatan record otomatis dilewati."
+        fi
+    fi
+    if [[ "$CF_DONE" -eq 0 ]]; then
+        print_ok "PENTING: agar SlowDNS bisa dipakai, buat 2 record DNS ini di zona ${ZONE_DOMAIN}:"
+        print_ok "  1) Type A   | Name: ${NS_DOMAIN} | Content: ${SERVER_IP:-<IP-VPS-INI>}"
+        print_ok "  2) Type NS  | Name: ${NS_DOMAIN} | Content: ${NS_DOMAIN}"
+        print_ok "Atau isi /root/.cf_key (CF_ID & CF_KEY) lalu jalankan ulang installer agar record dibuat otomatis."
+    fi
+
+    print_success "SlowDNS"
+    print_ok "ssh_slow SELESAI"
 }
 
 clear
