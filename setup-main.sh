@@ -1572,9 +1572,8 @@ cd
     wget https://raw.githubusercontent.com/Pemulaajiw/script_allos/main/menu/menu.zip
     7z x -pFanVpnID0311 menu.zip
     chmod +x menu/*
-    mv menu/* /usr/local/sbin
-    rm -rf menu
-    rm -rf menu.zip
+    mv menu/* /usr/local/sbin/
+    rm -rf menu /root/menu.zip
 }
 
 # Membaut Default Menu 
