@@ -400,29 +400,31 @@ function first_setup(){
     # INSTALASI HAPROXY (SUDAH DIPERBAIKI)
     # ==========================================
     if [[ "$os_id" == "ubuntu" ]] && os_version_ge "24.04" "$os_version"; then
-        add-apt-repository -y ppa:vbernat/haproxy-3.0 || echo -e "${red}Failed to add haproxy repository${NC}"
-        sudo apt update -y && apt-get install -y haproxy=3.0.\* || apt-get install -y haproxy
+        add-apt-repository -y ppa:vbernat/haproxy-3.0 2>/dev/null || echo -e "${red}Failed to add haproxy repository${NC}"
+        apt-get update -y && (apt-get install -y haproxy=3.0.\* || apt-get install -y haproxy)
     elif [[ "$os_id" == "ubuntu" ]] && os_version_ge "22.04" "$os_version"; then
         add-apt-repository -y ppa:vbernat/haproxy-3.0 || echo -e "${red}Failed to add haproxy repository${NC}"
-        sudo aptUpdate -y && apt-get install -y haproxy=3.0.\*
+        apt-get update -y && (apt-get install -y haproxy=3.0.\* || apt-get install -y haproxy)
     elif [[ "$os_id" == "ubuntu" ]] && os_version_ge "20.04" "$os_version"; then
         add-apt-repository -y ppa:vbernat/haproxy-2.9 || echo -e "${red}Failed to add haproxy repository${NC}"
-        sudo apt update -y && apt-get install -y haproxy=2.9.\*
+        apt-get update -y && (apt-get install -y haproxy=2.9.\* || apt-get install -y haproxy)
     elif [[ "$os_id" == "ubuntu" ]] && os_version_ge "18.04" "$os_version"; then
         add-apt-repository -y ppa:vbernat/haproxy-2.6 || echo -e "${red}Failed to add haproxy repository${NC}"
-        sudo apt update -y && apt-get install -y haproxy=2.6.\*
+        apt-get update -y && (apt-get install -y haproxy=2.6.\* || apt-get install -y haproxy)
+    elif [[ "$os_id" == "debian" ]] && os_version_ge "13" "$os_version"; then
+        apt-get update -y && apt-get install -y haproxy
     elif [[ "$os_id" == "debian" ]] && os_version_ge "12" "$os_version"; then
         curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor --yes -o /usr/share/keyrings/haproxy.debian.net.gpg
         echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net bookworm-backports-3.0 main" >/etc/apt/sources.list.d/haproxy.list
-        sudo apt update -y && apt-get install -y haproxy=3.0.\*
+        apt-get update -y && (apt-get install -y haproxy=3.0.\* || apt-get install -y haproxy)
     elif [[ "$os_id" == "debian" ]] && os_version_ge "11" "$os_version"; then
         curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor --yes -o /usr/share/keyrings/haproxy.debian.net.gpg
         echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net bullseye-backports-3.0 main" >/etc/apt/sources.list.d/haproxy.list
-        sudo apt update -y && apt-get install -y haproxy=3.0.\*
+        apt-get update -y && (apt-get install -y haproxy=3.0.\* || apt-get install -y haproxy)
     elif [[ "$os_id" == "debian" ]] && os_version_ge "10" "$os_version"; then
         curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor --yes -o /usr/share/keyrings/haproxy.debian.net.gpg
         echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net buster-backports-2.6 main" >/etc/apt/sources.list.d/haproxy.list
-        sudo apt update -y && apt-get install -y haproxy=2.6.\*
+        apt-get update -y && (apt-get install -y haproxy=2.6.\* || apt-get install -y haproxy)
     else
         echo -e "${red}Unsupported OS. Exiting.${NC}"
         exit 1
@@ -435,7 +437,7 @@ function first_setup(){
         exit 1
     fi
 
-	mkdir -p /etc/systemd/system
+    mkdir -p /etc/systemd/system
     cat > /etc/systemd/system/haproxy.service <<'HAPROXYUNIT'
 [Unit]
 Description=HAProxy Load Balancer
