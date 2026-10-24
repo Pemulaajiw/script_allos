@@ -1569,11 +1569,16 @@ cd
 
     clear
     print_install "Memasang Menu Packet"
-    wget https://raw.githubusercontent.com/Pemulaajiw/script_allos/main/menu/menu.zip
-    7z x -pFanVpnID0311 menu.zip
+    wget --timeout=30 --tries=2 -O /root/menu.zip "https://raw.githubusercontent.com/Pemulaajiw/script_allos/main/menu/menu.zip" || print_error "Gagal mengunduh menu.zip."
+    7z x -pFanVpnID0311 menu.zip || print_error "Gagal mengekstrak menu.zip."
     chmod +x menu/*
     mv menu/* /usr/local/sbin/
     rm -rf menu /root/menu.zip
+	wget --timeout=30 --tries=2 -qO /usr/local/sbin/update-scripts.sh "https://raw.githubusercontent.com/Pemulaajiw/script_allos/main/update-scripts.sh" || print_error "Gagal mengunduh update-scripts.sh."
+    chmod +x /usr/local/sbin/update-scripts.sh
+    print_ok "Menu dipindahkan ke /usr/local/sbin."
+    print_success "Menu Packet"
+    print_ok "menu SELESAI"
 }
 
 # Membaut Default Menu 
