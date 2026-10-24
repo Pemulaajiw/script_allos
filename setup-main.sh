@@ -243,41 +243,47 @@ function base_package() {
     export DEBIAN_FRONTEND=noninteractive
 
     print_ok "Menginstal paket dasar..."
-    apt-get install -y zip unzip pwgen openssl socat cron bash-completion figlet 2>/dev/null || apt-get install -y zip unzip pwgen openssl socat cron bash-completion 2>/dev/null || print_error "Gagal menginstal paket dasar"
-    apt-get install -y netcat-openbsd 2>/dev/null || apt-get install -y netcat-traditional 2>/dev/null || apt-get install -y netcat 2>/dev/null || print_ok "netcat dilewati"
+    compat_apt_install zip unzip pwgen openssl socat cron bash-completion figlet || compat_apt_install zip unzip pwgen openssl socat cron bash-completion || print_error "Gagal menginstal paket dasar"
+    compat_apt_try "netcat-openbsd" "netcat-traditional" "netcat" || print_ok "netcat dilewati"
 
-    print_ok "Memperbarui sistem..."
+    print_ok "Memperbarui dan memutakhirkan sistem..."
+    # Tahan paket grub agar tidak memunculkan pop-up interaktif saat upgrade
     apt-mark hold grub-pc grub-efi-amd64-signed 2>/dev/null || true
     apt-get update -y
     apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
+    apt-get dist-upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 
     print_ok "Menginstal dan mengkonfigurasi chrony..."
-    apt-get install -y chrony
+    compat_apt_install chrony
     if systemctl list-units --type=service 2>/dev/null | grep -q chronyd.service; then
-        systemctl enable chronyd
-        systemctl restart chronyd
+        compat_service enable chronyd
+        compat_service restart chronyd
     else
-        systemctl enable chrony
-        systemctl restart chrony
+        compat_service enable chrony
+        compat_service restart chrony
     fi
     chronyc sourcestats -v >/dev/null 2>&1 || true
     chronyc tracking -v >/dev/null 2>&1 || true
+    chronyc makestep >/dev/null 2>&1 || true
 
-    print_ok "Sinkronisasi waktu dari NTP..."
-    chronyc makestep || print_error "Gagal sinkronisasi waktu."
+    if compat_apt_try "ntpdate"; then
+        ntpdate pool.ntp.org >/dev/null 2>&1 || true
+    else
+        print_ok "ntpdate dilewati (opsional, chrony sudah aktif)."
+    fi
 
     print_ok "Menginstal utilitas sistem..."
-    apt-get install sudo -y || print_error "Gagal menginstal sudo."
+    compat_apt_install sudo || print_error "Gagal menginstal sudo."
     apt-get clean all
     apt-get autoremove -y
-    apt-get install -y debconf-utils || print_error "Gagal menginstal debconf-utils."
+    compat_apt_install debconf-utils || print_error "Gagal menginstal debconf-utils."
 
     print_ok "Menghapus paket MTA bawaan yang konflik..."
     apt-get remove --purge exim4 -y 2>/dev/null || true
-    # Firewall tidak dihapus demi keamanan
+    # UFW / Firewalld tidak di-purge paksa agar keamanan sistem tetap terjaga
 
     print_ok "Menginstal software-properties-common..."
-    apt-get install -y --no-install-recommends software-properties-common 2>/dev/null || print_ok "software-properties-common dilewati (Debian 12+)."
+    compat_apt_install software-properties-common 2>/dev/null || print_ok "software-properties-common dilewati (Debian 12+)."
 
     if apt-cache show iptables-persistent &>/dev/null; then
         echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
@@ -285,14 +291,18 @@ function base_package() {
     fi
 
     print_ok "Menginstal paket utama..."
-    apt-get install -y vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-openssl-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python3 htop lsof tar wget curl ruby zip unzip python3-pip libc6 util-linux ca-certificates cmake git screen socat xz-utils dnsutils cron bash-completion jq || print_error "Gagal menginstal beberapa paket utama."
+    PKG_UTAMA_LIB="vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-openssl-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++"
+    PKG_UTAMA_TOOLS="python3 python3-pip htop lsof tar wget curl ruby zip unzip libc6 util-linux ca-certificates cmake git screen socat xz-utils cron bash-completion chrony jq"
+    compat_apt_install $PKG_UTAMA_LIB || print_error "Gagal menginstal kelompok paket utama (library/build)."
+    compat_apt_install $PKG_UTAMA_TOOLS || print_error "Gagal menginstal kelompok paket utama (tools)."
 
-    apt-get install -y netfilter-persistent 2>/dev/null || apt-get install -y iptables-persistent 2>/dev/null || print_ok "netfilter/iptables-persistent dilewati"
-    apt-get install -y easy-rsa 2>/dev/null || print_ok "easy-rsa dilewati"
-    apt-get install -y speedtest-cli 2>/dev/null || pip3 install speedtest-cli --break-system-packages 2>/dev/null || pip3 install speedtest-cli 2>/dev/null || print_ok "speedtest-cli dilewati"
-    apt-get install -y msmtp-mta 2>/dev/null || print_ok "msmtp-mta dilewati"
-    apt-get install -y p7zip-full 2>/dev/null || apt-get install -y 7zip 2>/dev/null || print_ok "7zip/p7zip dilewati"
-    apt-get install -y shc 2>/dev/null || print_ok "shc dilewati"
+    compat_apt_try "dnsutils" "bind9-dnsutils" || print_ok "dnsutils/bind9-dnsutils dilewati"
+    compat_apt_try "netfilter-persistent" "iptables-persistent" || print_ok "netfilter/iptables-persistent dilewati"
+    compat_apt_try "easy-rsa" || print_ok "easy-rsa dilewati"
+    compat_apt_try "speedtest-cli" || pip3 install speedtest-cli --break-system-packages 2>/dev/null || pip3 install speedtest-cli 2>/dev/null || print_ok "speedtest-cli dilewati"
+    compat_apt_try "msmtp-mta" || print_ok "msmtp-mta dilewati"
+    compat_apt_try "7zip" "p7zip-full" || print_ok "7zip/p7zip dilewati"
+    compat_apt_try "shc" || print_ok "shc dilewati"
 
     print_success "Packet Yang Dibutuhkan"
     print_ok "base_package SELESAI"
