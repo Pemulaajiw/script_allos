@@ -431,6 +431,27 @@ function first_setup(){
         print_error "Your OS Is Not Supported ( ${YELLOW}$os_pretty${NC} )"
         exit 1
     fi
+
+	mkdir -p /etc/systemd/system
+    cat > /etc/systemd/system/haproxy.service <<'HAPROXYUNIT'
+[Unit]
+Description=HAProxy Load Balancer
+After=network.target
+
+[Service]
+Type=notify
+ExecStartPre=/usr/sbin/haproxy -c -f /etc/haproxy/haproxy.cfg
+ExecStart=/usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -p /run/haproxy.pid
+ExecReload=/bin/kill -USR2 $MAINPID
+KillMode=mixed
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+HAPROXYUNIT
+    systemctl daemon-reload 2>/dev/null || true
+    print_success "HAProxy Installation"
+    print_ok "first_setup SELESAI"
 }
 # GEO PROJECT
 clear
