@@ -601,40 +601,47 @@ function pasang_ssl() {
     print_install "MENJALANKAN pasang_ssl"
     rm -rf /etc/xray/xray.key
     rm -rf /etc/xray/xray.crt
-    domain="$DOMAIN"
+    domain="${DOMAIN:-$(cat /etc/xray/domain 2>/dev/null || cat /root/domain 2>/dev/null)}"
+    if [ -z "$domain" ]; then
+        print_error "Domain kosong! Pastikan domain sudah diisi dengan benar."
+        return 1
+    fi
     print_ok "Domain untuk SSL: $domain"
-    # 2026-10-23 xmr12: pakai sertifikat DNS-01 yang sudah ada bila ada, jangan hapus /root/.acme.sh dulu
+
     if ls "/root/.acme.sh/${domain}_ecc/fullchain.cer" >/dev/null 2>&1; then
         mkdir -p /etc/xray /etc/haproxy
         cp "/root/.acme.sh/${domain}_ecc/fullchain.cer" /etc/xray/xray.crt
         cp "/root/.acme.sh/${domain}_ecc/${domain}.key" /etc/xray/xray.key
-        chmod 600 /etc/xray/xray.key
-        cat /etc/xray/xray.crt /etc/xray/xray.key > /etc/haproxy/hap.pem
+        chown www-data:www-data /etc/xray/xray.crt /etc/xray/xray.key 2>/dev/null || true
+        chmod 644 /etc/xray/xray.crt
+        chmod 640 /etc/xray/xray.key
+        cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem /etc/haproxy/udud.pem >/dev/null
         chmod 600 /etc/haproxy/hap.pem
         print_ok "pasang_ssl SELESAI (sertifikat DNS-01 yang sudah ada dipakai ulang)"
         return
     fi
+
     STOPWEBSERVER=$(lsof -i:80 | cut -d' ' -f1 | awk 'NR==2 {print $1}')
     rm -rf /root/.acme.sh
-    mkdir /root/.acme.sh
+    mkdir -p /root/.acme.sh /etc/haproxy
     print_ok "Menghentikan layanan web sementara..."
-    systemctl stop $STOPWEBSERVER || print_ok "Gagal menghentikan $STOPWEBSERVER (mungkin tidak berjalan)."
-    systemctl stop nginx || print_ok "Gagal menghentikan nginx (mungkin tidak berjalan)."
+    [ -n "$STOPWEBSERVER" ] && systemctl stop "$STOPWEBSERVER" 2>/dev/null || print_ok "Tidak ada proses lain di port 80."
+    systemctl stop nginx 2>/dev/null || true
+    systemctl stop haproxy 2>/dev/null || true
+
     print_ok "Mengunduh dan menjalankan acme.sh..."
     curl --connect-timeout 30 https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh || print_error "Gagal mengunduh acme.sh."
     chmod +x /root/.acme.sh/acme.sh
     /root/.acme.sh/acme.sh --upgrade --auto-upgrade || print_error "Gagal memutakhirkan acme.sh."
     /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt || print_error "Gagal mengatur CA default untuk acme.sh."
-    # 2026-10-23 xmr12: registrasi acme jangan pakai email bawaan acme@localhost (ditolak LE);
-    # pakai email akun Cloudflare dari /root/.cf_key bila ada.
+
     if [ -f /root/.cf_key ]; then
         . /root/.cf_key
         if [ -n "${CF_ID:-}" ]; then
             /root/.acme.sh/acme.sh --register-account -m "$CF_ID" 2>/dev/null || true
         fi
     fi
-    # Fallback DNS-01 Cloudflare: IP publik VPS NAT tidak stabil, HTTP-01 tidak bisa diandalkan.
-    # Bila /root/.cf_key ada, coba DNS-01 dulu; bila berhasil, pasang dan selesai tanpa HTTP-01.
+
     if [ -f /root/.cf_key ]; then
         . /root/.cf_key
         if [ -n "${CF_KEY:-}" ]; then
@@ -642,9 +649,10 @@ function pasang_ssl() {
             export CF_Email="${CF_ID:-}"
             if /root/.acme.sh/acme.sh --issue -d "$domain" --dns dns_cf -k ec-256 2>/dev/null; then
                 /root/.acme.sh/acme.sh --installcert -d "$domain" --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc || print_error "Gagal menginstal sertifikat DNS-01 untuk $domain."
-                chmod 600 /etc/xray/xray.key
-                mkdir -p /etc/haproxy
-                cat /etc/xray/xray.crt /etc/xray/xray.key > /etc/haproxy/hap.pem
+                chown www-data:www-data /etc/xray/xray.crt /etc/xray/xray.key 2>/dev/null || true
+                chmod 644 /etc/xray/xray.crt
+                chmod 640 /etc/xray/xray.key
+                cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem /etc/haproxy/udud.pem >/dev/null
                 chmod 600 /etc/haproxy/hap.pem
                 print_ok "pasang_ssl SELESAI (DNS-01)"
                 return
@@ -653,11 +661,16 @@ function pasang_ssl() {
             fi
         fi
     fi
+
     print_ok "Menerbitkan sertifikat SSL..."
-    /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256 || print_error "Gagal menerbitkan sertifikat SSL untuk $domain."
-    ~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc || print_error "Gagal menginstal sertifikat SSL untuk $domain."
-    chmod 600 /etc/xray/xray.key
-    print_ok "Permission key diatur ke 644."
+    /root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256 || print_error "Gagal menerbitkan sertifikat SSL untuk $domain."
+    /root/.acme.sh/acme.sh --installcert -d "$domain" --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc || print_error "Gagal menginstal sertifikat SSL untuk $domain."
+    chown www-data:www-data /etc/xray/xray.crt /etc/xray/xray.key 2>/dev/null || true
+    chmod 644 /etc/xray/xray.crt
+    chmod 640 /etc/xray/xray.key
+    cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem /etc/haproxy/udud.pem >/dev/null
+    chmod 600 /etc/haproxy/hap.pem
+    print_ok "Permission key diatur untuk www-data dan hap.pem dibuat."
     print_success "SSL Certificate"
     print_ok "pasang_ssl SELESAI"
 }
