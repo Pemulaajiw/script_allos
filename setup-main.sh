@@ -1739,7 +1739,7 @@ function dnsxx(){
 # ==========================================
 # SETUP DNS
 # ==========================================
-chattr -i /etc/resolv.conf >/dev/null 2>&1
+    chattr -i /etc/resolv.conf >/dev/null 2>&1
     systemctl disable systemd-resolved > /dev/null 2>&1 || true
     systemctl stop systemd-resolved > /dev/null 2>&1 || true
     rm -f /etc/resolv.conf > /dev/null 2>&1
@@ -1766,10 +1766,8 @@ clear
 print_success "DNS Setup Complete"
 history -c
 rm -f /root/openvpn /root/openvpn_setup.sh /root/key.pem /root/cert.pem /root/bbr.sh /root/limit.sh /root/random.sh /root/menu.zip
-# 2026-10-23 xmr12: /root/domain TIDAK dihapus (dibutuhkan renew + run ulang)
 rm -rf /root/menu
 rm -rf /root/*.zip
-# Jangan gunakan rm -rf /root/*.sh secara membabi-buta jika ada file script penting yang ingin disimpan di root
 rm -f /root/LICENSE /root/README.md
 rm -rf /etc/noobz
 mkdir -p /etc/noobz
