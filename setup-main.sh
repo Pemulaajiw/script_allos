@@ -354,6 +354,12 @@ function first_setup(){
     fi
 
     print_success "Directory Xray"
+    print_ok "Setup Dependencies $OS_NAME"
+    sudo apt update -y
+    print_ok "Installing haproxy..."
+    # 2026-10-23 xmr12: build sumber tidak membuat user/group seperti paket apt; buat dulu sebelum validasi config
+    getent group haproxy >/dev/null 2>&1 || groupadd -r haproxy 2>/dev/null || true
+    getent passwd haproxy >/dev/null 2>&1 || useradd -r -g haproxy -s /usr/sbin/nologin haproxy 2>/dev/null || true
     ln -fs /usr/share/zoneinfo/$timezone /etc/localtime
 
     apt-get update -y || echo -e "${red}Failed to update package list${neutral}"
