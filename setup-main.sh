@@ -1368,55 +1368,50 @@ gotop_latest="$(curl -s https://api.github.com/repos/xxxserxxx/gotop/releases | 
 function ins_Fail2ban(){
 clear
 print_install "Menginstall Fail2ban"
-apt -y install fail2ban > /dev/null 2>&1
-sudo systemctl enable --now fail2ban
-/etc/init.d/fail2ban restart
+    apt-get -y install fail2ban > /dev/null 2>&1
+    systemctl enable --now fail2ban 2>/dev/null || true
+    systemctl restart fail2ban 2>/dev/null || /etc/init.d/fail2ban restart 2>/dev/null || true
 
-# Instal DDOS Flate
-if [ -d '/usr/local/ddos' ]; then
-	echo; echo; echo "Please un-install the previous version first"
-	exit 0
-else
-	mkdir /usr/local/ddos
-fi
-
-clear
-print_success "Fail2ban"
+    mkdir -p /usr/local/ddos
+    clear
+    print_success "Fail2ban"
 }
 
 function ins_epro(){
-clear
-print_install "MENJALANKAN ins_epro"
+    clear
+    print_install "MENJALANKAN ins_epro"
     print_ok "Mengunduh komponen ePro WebSocket Proxy..."
     wget --timeout=30 --tries=2 -O /usr/bin/ws "${REPO}files/${BINARCH}ws" || print_error "Gagal mengunduh ws binary."
-    wget --timeout=30 --tries=2 -O /usr/bin/tun.conf "${REPO}cfg_conf_js/tun.conf" || print_error "Gagal mengunduh tun.conf."
+    wget --timeout=30 --tries=2 -O /usr/bin/tun.conf "${REPO}config/tun.conf" 2>/dev/null \
+        || wget --timeout=30 --tries=2 -O /usr/bin/tun.conf "${REPO}cfg_conf_js/tun.conf" \
+        || print_error "Gagal mengunduh tun.conf."
     wget --timeout=30 --tries=2 -O /etc/systemd/system/ws.service "${REPO}files/ws.service" || print_error "Gagal mengunduh ws.service."
     chmod +x /etc/systemd/system/ws.service
     chmod +x /usr/bin/ws
     chmod 644 /usr/bin/tun.conf
+
     print_ok "Mengelola layanan ws..."
-    systemctl disable ws || print_ok "Gagal mendisable layanan ws (mungkin belum aktif)."
-    systemctl stop ws || print_ok "Gagal menghentikan layanan ws (mungkin belum berjalan)."
+    systemctl daemon-reload
+    systemctl disable ws 2>/dev/null || true
+    systemctl stop ws 2>/dev/null || true
     systemctl enable ws || print_error "Gagal mengaktifkan layanan ws."
     systemctl start ws || print_error "Gagal memulai layanan ws."
+
     print_ok "Mengunduh data GeoIP dan GeoSite..."
     wget --timeout=30 --tries=2 -q -O /usr/local/share/xray/geosite.dat "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" || print_error "Gagal mengunduh geosite.dat."
     wget --timeout=30 --tries=2 -q -O /usr/local/share/xray/geoip.dat "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" || print_error "Gagal mengunduh geoip.dat."
+
     print_ok "Mengunduh ftvpn binary..."
     wget --timeout=30 --tries=2 -O /usr/sbin/ftvpn "${REPO}files/${BINARCH}ftvpn" || print_error "Gagal mengunduh ftvpn binary."
     chmod +x /usr/sbin/ftvpn
+
     print_ok "Menerapkan aturan iptables untuk memblokir BitTorrent..."
-    iptables -A FORWARD -m string --string "get_peers" --algo bm -j DROP || print_error "Gagal menambahkan aturan iptables 1."
-    iptables -A FORWARD -m string --string "announce_peer" --algo bm -j DROP || print_error "Gagal menambahkan aturan iptables 2."
-    iptables -A FORWARD -m string --string "find_node" --algo bm -j DROP || print_error "Gagal menambahkan aturan iptables 3."
-    iptables -A FORWARD -m string --algo bm --string "BitTorrent" -j DROP || print_error "Gagal menambahkan aturan iptables 4."
-    iptables -A FORWARD -m string --algo bm --string "BitTorrent protocol" -j DROP || print_error "Gagal menambahkan aturan iptables 5."
-    iptables -A FORWARD -m string --algo bm --string "peer_id=" -j DROP || print_error "Gagal menambahkan aturan iptables 6."
-    iptables -A FORWARD -m string --algo bm --string ".torrent" -j DROP || print_error "Gagal menambahkan aturan iptables 7."
-    iptables -A FORWARD -m string --algo bm --string "announce.php?passkey=" -j DROP || print_error "Gagal menambahkan aturan iptables 8."
-    iptables -A FORWARD -m string --algo bm --string "torrent" -j DROP || print_error "Gagal menambahkan aturan iptables 9."
-    iptables -A FORWARD -m string --algo bm --string "announce" -j DROP || print_error "Gagal menambahkan aturan iptables 10."
-    iptables -A FORWARD -m string --algo bm --string "info_hash" -j DROP || print_error "Gagal menambahkan aturan iptables 11."
+    for str in "get_peers" "announce_peer" "find_node" "BitTorrent" "BitTorrent protocol" "peer_id=" ".torrent" "announce.php?passkey=" "torrent" "announce" "info_hash"; do
+        iptables -C FORWARD -m string --algo bm --string "$str" -j DROP 2>/dev/null \
+            || iptables -A FORWARD -m string --algo bm --string "$str" -j DROP \
+            || print_error "Gagal menambahkan aturan iptables ($str)."
+    done
+
     print_ok "Menyimpan dan memuat ulang aturan iptables..."
     iptables-save > /etc/iptables.up.rules || print_error "Gagal menyimpan aturan iptables."
     iptables-restore -t < /etc/iptables.up.rules || print_error "Gagal memuat ulang aturan iptables."
@@ -1426,8 +1421,8 @@ print_install "MENJALANKAN ins_epro"
         netfilter-persistent save 2>/dev/null || iptables-persistent save 2>/dev/null || print_error "Gagal menyimpan konfigurasi firewall."
     fi
     cd
-    apt autoclean -y || print_error "Gagal menjalankan autoclean."
-    apt autoremove -y || print_error "Gagal menjalankan autoremove."
+    apt-get autoclean -y >/dev/null 2>&1 || true
+    apt-get autoremove -y >/dev/null 2>&1 || true
     print_success "ePro WebSocket Proxy"
     print_ok "ins_epro SELESAI"
 }
