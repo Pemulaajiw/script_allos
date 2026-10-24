@@ -1792,11 +1792,13 @@ clear
 echo -e "\e[93;1m Wait in 4 sec...\e[0m"
 systemctl restart xray
 systemctl restart udp-custom
-sleep 4
-clear
-echo ""
-echo ""
-echo ""
-read -r -p "Press [ Enter ] TO WELCOME"
-clear
-welcome
+print_ok "SETUP SELESAI"
+print_ok "\033[93mSystem setup is complete.\033[0m"
+print_ok "Reboot akhir opsional: set AUTO_REBOOT=1 saat install untuk reboot otomatis, atau reboot manual setelah ini."
+if [ "${AUTO_REBOOT:-0}" = "1" ]; then
+    print_ok "Rebooting server in 5 seconds (AUTO_REBOOT=1)..."
+    sleep 5
+    reboot
+else
+    print_ok "Reboot dilewati (AUTO_REBOOT tidak di-set)."
+fi
