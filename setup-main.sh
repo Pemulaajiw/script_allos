@@ -1310,43 +1310,50 @@ print_success "Fail2ban"
 
 function ins_epro(){
 clear
-print_install "Menginstall ePro WebSocket Proxy"
-    wget -O /usr/bin/ws "${REPO}files/ws" >/dev/null 2>&1
-    wget -O /usr/bin/tun.conf "${REPO}config/tun.conf" >/dev/null 2>&1
-    wget -O /etc/systemd/system/ws.service "${REPO}files/ws.service" >/dev/null 2>&1
+print_install "MENJALANKAN ins_epro"
+    print_ok "Mengunduh komponen ePro WebSocket Proxy..."
+    wget --timeout=30 --tries=2 -O /usr/bin/ws "${REPO}files/${BINARCH}ws" || print_error "Gagal mengunduh ws binary."
+    wget --timeout=30 --tries=2 -O /usr/bin/tun.conf "${REPO}cfg_conf_js/tun.conf" || print_error "Gagal mengunduh tun.conf."
+    wget --timeout=30 --tries=2 -O /etc/systemd/system/ws.service "${REPO}files/ws.service" || print_error "Gagal mengunduh ws.service."
     chmod +x /etc/systemd/system/ws.service
     chmod +x /usr/bin/ws
     chmod 644 /usr/bin/tun.conf
-systemctl disable ws
-systemctl stop ws
-systemctl enable ws
-systemctl start ws
-systemctl restart ws
-wget -q -O /usr/local/share/xray/geosite.dat "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" >/dev/null 2>&1
-wget -q -O /usr/local/share/xray/geoip.dat "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" >/dev/null 2>&1
-wget -O /usr/sbin/ftvpn "${REPO}files/ftvpn" >/dev/null 2>&1
-chmod +x /usr/sbin/ftvpn
-iptables -A FORWARD -m string --string "get_peers" --algo bm -j DROP
-iptables -A FORWARD -m string --string "announce_peer" --algo bm -j DROP
-iptables -A FORWARD -m string --string "find_node" --algo bm -j DROP
-iptables -A FORWARD -m string --algo bm --string "BitTorrent" -j DROP
-iptables -A FORWARD -m string --algo bm --string "BitTorrent protocol" -j DROP
-iptables -A FORWARD -m string --algo bm --string "peer_id=" -j DROP
-iptables -A FORWARD -m string --algo bm --string ".torrent" -j DROP
-iptables -A FORWARD -m string --algo bm --string "announce.php?passkey=" -j DROP
-iptables -A FORWARD -m string --algo bm --string "torrent" -j DROP
-iptables -A FORWARD -m string --algo bm --string "announce" -j DROP
-iptables -A FORWARD -m string --algo bm --string "info_hash" -j DROP
-iptables-save > /etc/iptables.up.rules
-iptables-restore -t < /etc/iptables.up.rules
-netfilter-persistent save
-netfilter-persistent reload
-
-# remove unnecessary files
-cd
-apt autoclean -y >/dev/null 2>&1
-apt autoremove -y >/dev/null 2>&1
-print_success "ePro WebSocket Proxy"
+    print_ok "Mengelola layanan ws..."
+    systemctl disable ws || print_ok "Gagal mendisable layanan ws (mungkin belum aktif)."
+    systemctl stop ws || print_ok "Gagal menghentikan layanan ws (mungkin belum berjalan)."
+    systemctl enable ws || print_error "Gagal mengaktifkan layanan ws."
+    systemctl start ws || print_error "Gagal memulai layanan ws."
+    print_ok "Mengunduh data GeoIP dan GeoSite..."
+    wget --timeout=30 --tries=2 -q -O /usr/local/share/xray/geosite.dat "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" || print_error "Gagal mengunduh geosite.dat."
+    wget --timeout=30 --tries=2 -q -O /usr/local/share/xray/geoip.dat "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" || print_error "Gagal mengunduh geoip.dat."
+    print_ok "Mengunduh ftvpn binary..."
+    wget --timeout=30 --tries=2 -O /usr/sbin/ftvpn "${REPO}files/${BINARCH}ftvpn" || print_error "Gagal mengunduh ftvpn binary."
+    chmod +x /usr/sbin/ftvpn
+    print_ok "Menerapkan aturan iptables untuk memblokir BitTorrent..."
+    iptables -A FORWARD -m string --string "get_peers" --algo bm -j DROP || print_error "Gagal menambahkan aturan iptables 1."
+    iptables -A FORWARD -m string --string "announce_peer" --algo bm -j DROP || print_error "Gagal menambahkan aturan iptables 2."
+    iptables -A FORWARD -m string --string "find_node" --algo bm -j DROP || print_error "Gagal menambahkan aturan iptables 3."
+    iptables -A FORWARD -m string --algo bm --string "BitTorrent" -j DROP || print_error "Gagal menambahkan aturan iptables 4."
+    iptables -A FORWARD -m string --algo bm --string "BitTorrent protocol" -j DROP || print_error "Gagal menambahkan aturan iptables 5."
+    iptables -A FORWARD -m string --algo bm --string "peer_id=" -j DROP || print_error "Gagal menambahkan aturan iptables 6."
+    iptables -A FORWARD -m string --algo bm --string ".torrent" -j DROP || print_error "Gagal menambahkan aturan iptables 7."
+    iptables -A FORWARD -m string --algo bm --string "announce.php?passkey=" -j DROP || print_error "Gagal menambahkan aturan iptables 8."
+    iptables -A FORWARD -m string --algo bm --string "torrent" -j DROP || print_error "Gagal menambahkan aturan iptables 9."
+    iptables -A FORWARD -m string --algo bm --string "announce" -j DROP || print_error "Gagal menambahkan aturan iptables 10."
+    iptables -A FORWARD -m string --algo bm --string "info_hash" -j DROP || print_error "Gagal menambahkan aturan iptables 11."
+    print_ok "Menyimpan dan memuat ulang aturan iptables..."
+    iptables-save > /etc/iptables.up.rules || print_error "Gagal menyimpan aturan iptables."
+    iptables-restore -t < /etc/iptables.up.rules || print_error "Gagal memuat ulang aturan iptables."
+    if command -v compat_firewall_save >/dev/null 2>&1; then
+        compat_firewall_save || print_error "Gagal menyimpan konfigurasi firewall."
+    else
+        netfilter-persistent save 2>/dev/null || iptables-persistent save 2>/dev/null || print_error "Gagal menyimpan konfigurasi firewall."
+    fi
+    cd
+    apt autoclean -y || print_error "Gagal menjalankan autoclean."
+    apt autoremove -y || print_error "Gagal menjalankan autoremove."
+    print_success "ePro WebSocket Proxy"
+    print_ok "ins_epro SELESAI"
 }
 
 
