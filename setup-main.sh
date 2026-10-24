@@ -1739,21 +1739,21 @@ function dnsxx(){
 # ==========================================
 # SETUP DNS
 # ==========================================
-sudo systemctl disable systemd-resolved > /dev/null 2>&1
-sudo systemctl stop systemd-resolved > /dev/null 2>&1
-sudo rm -rf /etc/resolv.conf > /dev/null 2>&1
-echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" | sudo tee /etc/resolv.conf
-sudo chattr +i /etc/resolv.conf > /dev/null 2>&1
-sudo systemctl start systemd-resolved > /dev/null 2>&1
-sudo systemctl enable systemd-resolved > /dev/null 2>&1
+chattr -i /etc/resolv.conf >/dev/null 2>&1
+    systemctl disable systemd-resolved > /dev/null 2>&1 || true
+    systemctl stop systemd-resolved > /dev/null 2>&1 || true
+    rm -f /etc/resolv.conf > /dev/null 2>&1
+    echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" > /etc/resolv.conf
+    chattr +i /etc/resolv.conf > /dev/null 2>&1
 }
-instal
-echo ""
+
 function dropbear2019(){
-wget  -q -O /etc/dropbear2019 "${REPO}limit/dropbear2019" >/dev/null 2>&1
-chmod +x /etc/dropbear2019
-bash /etc/dropbear2019
+    wget -q -O /etc/dropbear2019 "${REPO}limit/dropbear2019" >/dev/null 2>&1
+    chmod +x /etc/dropbear2019
+    bash /etc/dropbear2019
 }
+
+instal
 echo ""
 print_install "Changing Dropbear Version"
 dropbear2019
@@ -1772,7 +1772,6 @@ rm -rf /root/*.zip
 rm -rf /root/*.sh
 rm -rf /root/LICENSE
 rm -rf /root/README.md
-rm -rf /root/domain
 rm -rf /etc/noobz
 mkdir -p /etc/noobz
 echo "" > /etc/xray/noob
@@ -1783,11 +1782,11 @@ if [ -n "$username" ]; then
 fi
 echo ""
 echo -e "\e[94;1m╔═════════════════════════════════════════════════╗\e[0m"
-echo -e "\e[96;1m          -[ FANSAJA TUNNELING PROJECT ]-                 \e[0m"
+echo -e "\e[96;1m          -[ FANSAJA TUNNELING PROJECT ]-          \e[0m"
 echo -e "\e[94;1m╚═════════════════════════════════════════════════╝\e[0m"
 echo -e ""
 echo -e "\e[94;1m╔═════════════════════════════════════════════════╗\e[0m"
-echo -e "\e[92;1m            ----[ PORT SERVICE ]----                   \e[0m"
+echo -e "\e[92;1m            ----[ PORT SERVICE ]----               \e[0m"
 echo -e "\e[94;1m╚═════════════════════════════════════════════════╝\e[0m"
 echo -e "\033[0;32m┌─────────────────────────────────────────────┐"
 echo -e "\033[0;32m│       >>> Service & Port                    │"
@@ -1801,7 +1800,6 @@ echo -e "\033[0;32m│   - NOOBZ VPN SSL           : 8443          │"
 echo -e "\033[0;32m│   - OpenVPN Websocket SSL   : 443           │"
 echo -e "\033[0;32m│   - OpenVPN TCP             : 443, 1194     │"
 echo -e "\033[0;32m│   - OpenVPN UDP             : 2200          │"
-echo -e "\033[0;32m│   - OpenVPN Websocket SSL   : 443           │"
 echo -e "\033[0;32m│   - XRAY Vmess TLS          : 443           │"
 echo -e "\033[0;32m│   - XRAY Vmess gRPC         : 443           │"
 echo -e "\033[0;32m│   - XRAY Vmess None TLS     : 80            │"
@@ -1814,7 +1812,7 @@ echo -e "\033[0;32m│   - Trojan GO               : 2087          │"
 echo -e "\033[0;32m│   - Shadowsocks WS          : 443           │"
 echo -e "\033[0;32m└─────────────────────────────────────────────┘"
 echo -e "\e[94;1m╔═════════════════════════════════════════════════╗\e[0m"
-echo -e "\e[92;1m               [ TERIMAKASIH ]                      \e[0m"
+echo -e "\e[92;1m                [ TERIMAKASIH ]                    \e[0m"
 echo -e "\e[94;1m╚═════════════════════════════════════════════════╝\e[0m"
 echo -e " t.me/Fauziii09"
 echo -e " TERIMAKASIH SUDAH MENGGUNAKAN LAYANAN SC FAN PREMIUM"
