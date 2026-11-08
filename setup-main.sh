@@ -438,6 +438,8 @@ function first_setup(){
         print_ok "Your OS Is Supported ( ${green}$os_pretty${NC} )"
     else
         print_error "Your OS Is Not Supported ( ${YELLOW}$os_pretty${NC} )"
+        print_error "OS yang didukung: Ubuntu 20.04+ dan Debian 10+."
+        print_error "Silakan gunakan salah satu versi tersebut, lalu jalankan ulang installer."
         exit 1
     fi
 
